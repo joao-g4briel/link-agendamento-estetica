@@ -1,0 +1,62 @@
+# Product
+
+<!-- impeccable:product-schema 1 -->
+
+## Platform
+
+web
+
+## Stack
+
+Delegated, with one user constraint: "o banco será placeholder por enquanto".
+Chosen: static HTML/CSS/JS (ES modules, no build step), served by a zero-dependency Node script for local preview (Node 24 is installed). All data goes through one async API module backed by a placeholder store (seeded data persisted in the browser's localStorage), so a real backend can replace it later without touching the screens.
+
+## Users
+
+- **Cliente da estética (primary, public link):** dono(a) de carro que chega pelo link na bio do Instagram, quase sempre no celular e dentro do navegador do próprio Instagram. Quer escolher o serviço, ver um horário que realmente está livre e garantir a vaga sem trocar mensagens.
+- **Dono(a) da estética automotiva (operator, painel):** atende os carros e cuida da agenda ao mesmo tempo. Abre o painel no celular entre um carro e outro (às vezes no computador da recepção) para ver o dia, marcar o serviço como concluído e mandar os avisos de retorno.
+
+## Product Purpose
+
+Um link de agendamento para a bio de uma única estética automotiva: o cliente escolhe o serviço, vê os horários livres e o agendamento cai direto na agenda do dono. Depois do atendimento, o sistema guarda quando aquele carro deve voltar (renovar a vitrificação, nova higienização) e, no dia certo, coloca o cliente na fila de retorno do painel com a mensagem de WhatsApp pronta.
+
+Sucesso: agendamentos que chegam sem conversa no direct/WhatsApp, e carros atendidos que voltam no tempo certo sem o dono precisar lembrar.
+
+## Positioning
+
+Cada serviço tem o seu ciclo de retorno. Quando o carro é concluído, o próximo retorno já nasce marcado; no dia, o painel entrega a mensagem pronta no WhatsApp com um link que reabre o mesmo serviço já com os dados do cliente. "O carro que você atendeu hoje volta sozinho."
+
+## Operating Context
+
+- Público em português do Brasil, preços em real (R$), fuso America/Sao_Paulo.
+- Entrada principal: link na bio do Instagram, aberto no navegador interno do app, em telas de celular.
+- WhatsApp é o canal de conversa com o cliente. Aviso de retorno é por **WhatsApp com 1 clique** (link wa.me com mensagem pronta, aberto a partir do painel); não há envio automático por API.
+- Serviços de estética têm durações longas e variadas (de 1 hora a um dia inteiro) e o espaço é limitado (poucas vagas/boxes ao mesmo tempo).
+
+## Capabilities and Constraints
+
+- Uma estética só; sem multiempresa, sem cadastro de outros negócios.
+- Link público: escolher serviço → ver dias e horários livres → informar nome, WhatsApp e carro → confirmação.
+- Painel do dono: agenda (dia/semana), concluir / faltou / cancelar, fila de retornos com WhatsApp em 1 clique, serviços com duração, preço e intervalo de retorno, horário de funcionamento, vagas simultâneas e folgas.
+- Banco de dados é placeholder (dados de exemplo no navegador). Nada é compartilhado entre aparelhos até existir um backend.
+- Undecided: pagamento/sinal online, lembrete na véspera, login real do painel, nome e identidade da estética.
+
+## Brand Commitments
+
+None yet. Nome, logo, endereço e contato da estética ainda não foram informados; a interface usa um nome de exemplo editável nas configurações.
+
+## Evidence on Hand
+
+Nenhuma. Não há fotos, depoimentos, avaliações, número de clientes nem preços reais. Os serviços e valores de exemplo devem ser identificados como exemplo; não inventar depoimentos, notas, contagens de clientes ou selos.
+
+## Product Principles
+
+1. **Agendar sem conversa.** Do link ao horário confirmado em poucos toques no celular, sem precisar chamar ninguém.
+2. **Horário mostrado é horário real.** A disponibilidade sai da agenda, das vagas e das folgas; nunca um formulário de "pedido de horário".
+3. **Todo atendimento planta o próximo.** Concluir um serviço já agenda o retorno daquele carro.
+4. **WhatsApp é o canal.** Mensagens prontas, em português natural, que o dono envia com um toque.
+5. **Operável com uma mão.** O painel funciona no celular, no meio do trabalho.
+
+## Accessibility & Inclusion
+
+WCAG 2.2 AA como padrão: contraste, alvos de toque de pelo menos 44px, navegação por teclado no painel, respeito a `prefers-reduced-motion`.

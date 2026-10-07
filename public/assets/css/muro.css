@@ -1,0 +1,1065 @@
+/* Link de agendamento — o muro pintado da estética.
+   Tinta: letras em cal com sombra; giz: o que ainda está em aberto. */
+
+:root {
+  color-scheme: dark;
+
+  --muro: #1f3a9e;
+  --muro-fundo: #19318a;
+  --muro-claro: #2a4bb5;
+  --cal: #f3f5f1;
+  --cal-suave: #c9d3f2;
+  --giz: rgb(243 245 241 / 0.78);
+  --giz-traco: rgb(243 245 241 / 0.5);
+  --giz-guia: rgb(243 245 241 / 0.1);
+  --zarcao: #e2471d;
+  --canario: #f5c400;
+  --canario-escuro: #e0b200;
+  --tinta: #121624;
+  --tinta-suave: #3b4670;
+  --fita: #e9d9a4;
+
+  --sombra-pintada: 0.03em 0.03em 0 var(--tinta), 0.06em 0.06em 0 var(--tinta), 0.09em 0.09em 0 var(--zarcao);
+  --sombra-curta: 0.04em 0.05em 0 var(--tinta);
+
+  --font-pincel: 'Londrina Solid', 'Arial Narrow', sans-serif;
+  --font-cursiva: 'Yellowtail', 'Brush Script MT', cursive;
+  --font-texto: 'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --guia: 12px;
+  --gutter: clamp(16px, 5vw, 40px);
+  --ease-saida: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Contornos riscados a giz (traço irregular, espessura fixa). */
+  --giz-caixa: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 60' preserveAspectRatio='none'%3E%3Cpath d='M2.6 4.4 C30 2.2 70 3.6 97.6 2.9 C98.6 22 97.2 40 97.9 57.2 C70 58.4 32 57 2.3 57.8 C1.6 40 3.1 21 2.6 4.4Z' fill='none' stroke='%23f3f5f1' stroke-opacity='.62' stroke-width='2' vector-effect='non-scaling-stroke' stroke-dasharray='22 2.5 13 1.8 30 3' stroke-linecap='round'/%3E%3C/svg%3E");
+  --giz-risco: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 60' preserveAspectRatio='none'%3E%3Cpath d='M8 52 C30 38 64 22 92 8' fill='none' stroke='%23f3f5f1' stroke-opacity='.5' stroke-width='2' vector-effect='non-scaling-stroke' stroke-linecap='round'/%3E%3C/svg%3E");
+  --giz-linha: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='3' viewBox='0 0 120 3'%3E%3Cpath d='M1 1.6 13 1.3M18 1.7 26 1.5M31 1.3 47 1.7M52 1.5 58 1.6M63 1.7 80 1.3M85 1.6 94 1.4M99 1.3 117 1.7' stroke='%23f3f5f1' stroke-opacity='.55' stroke-width='2' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-padding-top: 16px;
+  scrollbar-color: var(--giz-traco) var(--muro-fundo);
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--muro) url('../img/reboco.svg');
+  color: var(--cal);
+  font: 400 1rem/1.5 var(--font-texto);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection { background: var(--canario); color: var(--tinta); }
+
+:focus-visible {
+  outline: 3px solid var(--canario);
+  outline-offset: 3px;
+}
+
+a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
+
+.defs { position: absolute; }
+
+.icone {
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+  vertical-align: -0.2em;
+}
+
+.visualmente-oculto {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ */
+/* Fita crepe com o aviso de demonstração                              */
+
+.aviso-exemplo {
+  position: relative;
+  z-index: 2;
+  width: fit-content;
+  max-width: calc(100% - 2 * var(--gutter));
+  margin: 0 auto -10px;
+  padding: 6px 14px 5px;
+  background: var(--fita);
+  color: var(--tinta);
+  font: 600 0.8125rem/1.3 var(--font-texto);
+  text-align: center;
+  rotate: -1.2deg;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
+}
+
+/* ------------------------------------------------------------------ */
+/* Estrutura                                                           */
+
+.muro {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 var(--gutter) env(safe-area-inset-bottom);
+}
+
+/* ------------------------------------------------------------------ */
+/* Letreiro                                                            */
+
+.letreiro {
+  padding: 34px 0 22px;
+}
+
+.letreiro__nome {
+  --tam: clamp(3.4rem, 17vw, 6rem);
+  --linha: calc(var(--tam) * 0.94);
+  margin: 0;
+  font-family: var(--font-pincel);
+  font-weight: 900;
+  font-size: var(--tam);
+  line-height: var(--linha);
+  text-transform: uppercase;
+  letter-spacing: 0.005em;
+  color: var(--cal);
+  text-shadow: var(--sombra-pintada);
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  /* Linhas de giz do pintor: linha de base e altura das maiúsculas. */
+  background:
+    repeating-linear-gradient(to bottom,
+      transparent 0 calc(var(--linha) * 0.08),
+      var(--giz-guia) calc(var(--linha) * 0.08) calc(var(--linha) * 0.08 + 1px),
+      transparent calc(var(--linha) * 0.08 + 1px) calc(var(--linha) * 0.86),
+      var(--giz-guia) calc(var(--linha) * 0.86) calc(var(--linha) * 0.86 + 1px),
+      transparent calc(var(--linha) * 0.86 + 1px) var(--linha));
+  background-size: 100vw var(--linha);
+  background-position: calc(var(--gutter) * -1) 0;
+}
+
+.letreiro__nome .vazio {
+  color: transparent;
+  text-shadow: none;
+  background: var(--giz-guia);
+  border-radius: 4px;
+}
+
+.letreiro__cursiva {
+  margin: -0.18em 0 0 0.5em;
+  font: 400 clamp(1.9rem, 8.5vw, 2.6rem) / 1.1 var(--font-cursiva);
+  color: var(--canario);
+  text-shadow: var(--sombra-curta);
+  rotate: -4deg;
+  transform-origin: left center;
+  width: fit-content;
+}
+
+.letreiro__info {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  color: var(--cal-suave);
+  font-size: 0.9375rem;
+}
+
+.letreiro__info li {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.letreiro__info a { color: var(--cal); }
+
+/* Anotações a giz: texto riscado na parede, sublinhado a giz, sem caixa
+   (a caixa de giz é só de coisa que se toca). */
+.giz-nota {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 16px 0 0;
+  padding: 0 0 9px;
+  color: var(--giz);
+  font: 600 0.9375rem/1.4 var(--font-texto);
+  background: var(--giz-linha) 0 100% / 120px 3px repeat-x;
+}
+
+.giz-nota .icone { margin-top: 0.15em; }
+.giz-nota strong { color: var(--cal); font-weight: 800; }
+
+.giz-nota--retorno { margin-top: 22px; }
+
+.letreiro .giz-nota {
+  padding-bottom: 0;
+  background: none;
+}
+
+.etapa__cabeca {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.giz-anotacao {
+  position: relative;
+  flex: none;
+  margin: 2px 0 -18px;
+  padding-right: 4px;
+  color: var(--giz);
+  font: 600 0.8125rem/1.25 var(--font-texto);
+  text-align: right;
+}
+
+.giz-anotacao strong {
+  display: block;
+  color: var(--cal);
+  font-weight: 800;
+  font-size: 0.9375rem;
+}
+
+.giz-seta {
+  display: block;
+  width: 40px;
+  height: 34px;
+  margin: 2px 6px 0 auto;
+  color: var(--giz-traco);
+  rotate: 8deg;
+}
+
+.letreiro__horario { display: none; }
+
+/* ------------------------------------------------------------------ */
+/* Etapas                                                              */
+
+.etapa {
+  position: relative;
+  padding: 28px 0 32px;
+}
+
+.etapa::before,
+.rodape::before,
+.tabela > li + li::before,
+.pintado__ficha > div::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--giz-linha) 0 0 / 120px 3px repeat-x;
+  pointer-events: none;
+}
+
+.etapa::before,
+.rodape::before,
+.tabela > li + li::before { top: 0; }
+.pintado__ficha > div::after { bottom: 0; }
+
+.etapa__titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-family: var(--font-pincel);
+  font-weight: 900;
+  font-size: clamp(2rem, 9vw, 2.5rem);
+  line-height: 1;
+  text-transform: uppercase;
+  text-shadow: var(--sombra-pintada);
+}
+
+.etapa__check {
+  display: none;
+  width: 0.9em;
+  height: 0.9em;
+  color: var(--canario);
+  filter: drop-shadow(0.04em 0.05em 0 var(--tinta));
+}
+
+.etapa.feita .etapa__check {
+  display: block;
+}
+
+.etapa__ajuda {
+  margin: 8px 0 0;
+  color: var(--cal-suave);
+  font-size: 0.9375rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Tabela de serviços                                                  */
+
+.tabela {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+}
+
+.tabela > li { position: relative; }
+.tabela > li + li::before { opacity: 0.7; }
+
+.servico {
+  appearance: none;
+  display: grid;
+  grid-template-columns: auto minmax(16px, 1fr) auto;
+  align-items: end;
+  column-gap: 10px;
+  width: calc(100% + 24px);
+  margin: 0 -12px;
+  padding: 14px 12px 15px;
+  border: 0;
+  border-radius: 5px 3px 6px 4px / 4px 6px 3px 5px;
+  background: transparent;
+  color: var(--cal);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s var(--ease-saida), color 0.2s var(--ease-saida);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.servico:hover { background: rgb(243 245 241 / 0.07); }
+
+.servico__nome {
+  font-family: var(--font-pincel);
+  font-weight: 900;
+  font-size: clamp(1.45rem, 6.4vw, 1.75rem);
+  line-height: 1.02;
+  text-transform: uppercase;
+  text-shadow: var(--sombra-curta);
+  max-width: 13ch;
+}
+
+.servico__pontos {
+  align-self: end;
+  height: 4px;
+  margin-bottom: 0.45em;
+  background: radial-gradient(circle, var(--giz-traco) 1.3px, transparent 1.8px) 0 50% / 9px 4px repeat-x;
+}
+
+.servico__preco {
+  display: grid;
+  justify-items: end;
+  font: 900 clamp(1.5rem, 6.6vw, 1.85rem) / 1 var(--font-pincel);
+  color: var(--canario);
+  text-shadow: var(--sombra-curta);
+  white-space: nowrap;
+}
+
+.servico__preco small {
+  font: 600 0.6875rem / 1.4 var(--font-texto);
+  color: var(--cal-suave);
+  text-shadow: none;
+  text-transform: lowercase;
+}
+
+.servico__meta {
+  grid-column: 1 / -1;
+  margin-top: 6px;
+  color: var(--cal-suave);
+  font-size: 0.9375rem;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.servico__desc {
+  grid-column: 1 / -1;
+  display: none;
+  margin-top: 8px;
+  max-width: 60ch;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.servico[aria-pressed='true'] {
+  background: var(--cal);
+  color: var(--muro);
+}
+
+.servico[aria-pressed='true'] .servico__nome,
+.servico[aria-pressed='true'] .servico__preco { text-shadow: none; }
+.servico[aria-pressed='true'] .servico__preco { color: var(--tinta); }
+.servico[aria-pressed='true'] .servico__preco small,
+.servico[aria-pressed='true'] .servico__meta { color: var(--tinta-suave); }
+.servico[aria-pressed='true'] .servico__desc { display: block; color: var(--tinta); }
+.servico[aria-pressed='true'] .servico__pontos {
+  background-image: radial-gradient(circle, rgb(31 58 158 / 0.45) 1.3px, transparent 1.8px);
+}
+
+.servico--esqueleto {
+  height: 74px;
+  margin: 0;
+  background: linear-gradient(var(--giz-guia), var(--giz-guia)) 0 18px / 58% 22px no-repeat,
+              linear-gradient(var(--giz-guia), var(--giz-guia)) 100% 18px / 22% 22px no-repeat,
+              linear-gradient(var(--giz-guia), var(--giz-guia)) 0 50px / 40% 12px no-repeat;
+}
+
+/* ------------------------------------------------------------------ */
+/* Dias e horários (giz = livre, tinta = escolhido)                    */
+
+.dias {
+  display: flex;
+  gap: 8px;
+  margin: 16px calc(var(--gutter) * -1) 0;
+  padding: 4px var(--gutter) 14px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--gutter);
+  scrollbar-width: thin;
+}
+
+.dias__mes {
+  flex: none;
+  align-self: center;
+  writing-mode: vertical-rl;
+  rotate: 180deg;
+  margin: 0 2px;
+  font: 400 1.35rem/1 var(--font-cursiva);
+  color: var(--canario);
+  text-shadow: var(--sombra-curta);
+}
+
+.dia {
+  appearance: none;
+  position: relative;
+  flex: 0 0 66px;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  padding: 9px 4px 8px;
+  border: 0;
+  border-radius: 4px 6px 5px 3px;
+  background: var(--giz-caixa) center / 100% 100% no-repeat;
+  color: var(--giz);
+  font: inherit;
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition: background-color 0.18s var(--ease-saida), color 0.18s var(--ease-saida);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dia__sem {
+  font: 700 0.75rem/1.2 var(--font-texto);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dia__num {
+  font: 900 1.9rem/1 var(--font-pincel);
+  color: var(--cal);
+}
+
+.dia__vagas {
+  font: 500 0.6875rem/1.2 var(--font-texto);
+  color: var(--cal-suave);
+  white-space: nowrap;
+}
+
+.dia:hover:not(:disabled) { background-color: rgb(243 245 241 / 0.08); }
+
+.dia[aria-pressed='true'] {
+  background: var(--cal);
+  color: var(--muro);
+}
+.dia[aria-pressed='true'] .dia__num { color: var(--muro); }
+.dia[aria-pressed='true'] .dia__vagas { color: var(--tinta-suave); }
+
+.dia:disabled {
+  cursor: not-allowed;
+  background: var(--giz-risco) center / 70% 70% no-repeat;
+  color: rgb(243 245 241 / 0.55);
+}
+.dia:disabled .dia__num { color: rgb(243 245 241 / 0.55); }
+.dia:disabled .dia__vagas { color: rgb(243 245 241 / 0.6); }
+
+.dias--carregando .dia {
+  pointer-events: none;
+  background: linear-gradient(var(--giz-guia), var(--giz-guia));
+  color: transparent;
+}
+
+.horarios { min-height: 48px; }
+
+.horarios__grupo + .horarios__grupo { margin-top: 6px; }
+
+.horarios__titulo {
+  margin: 14px 0 8px;
+  font: 400 1.6rem/1.1 var(--font-cursiva);
+  color: var(--canario);
+  text-shadow: var(--sombra-curta);
+}
+
+.horarios__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  gap: 8px;
+}
+
+.horario {
+  appearance: none;
+  width: 100%;
+  min-height: 52px;
+  display: grid;
+  place-content: center;
+  padding: 6px 4px;
+  border: 0;
+  border-radius: 3px 5px 4px 6px;
+  background: var(--giz-caixa) center / 100% 100% no-repeat;
+  color: var(--cal);
+  font: 700 1.125rem/1.1 var(--font-texto);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color 0.18s var(--ease-saida), color 0.18s var(--ease-saida);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.horario small {
+  display: block;
+  margin-top: 2px;
+  font: 600 0.6875rem/1.2 var(--font-texto);
+  color: var(--canario);
+}
+
+.horario:hover { background-color: rgb(243 245 241 / 0.08); }
+
+.horario[aria-pressed='true'] {
+  background: var(--cal);
+  color: var(--muro);
+  font-weight: 800;
+  animation: tinta-solida 0.32s var(--ease-saida);
+}
+.horario[aria-pressed='true'] small { color: var(--tinta-suave); }
+
+@keyframes tinta-solida {
+  from { clip-path: inset(0 100% 0 0 round 4px); }
+  to { clip-path: inset(0 0 0 0 round 4px); }
+}
+
+.vazio-giz {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  background: var(--giz-caixa) center / 100% 100% no-repeat;
+  color: var(--giz);
+  font-weight: 600;
+}
+
+.vazio-giz a { color: var(--cal); font-weight: 700; }
+
+/* ------------------------------------------------------------------ */
+/* Ficha                                                               */
+
+.ficha {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.ficha__dupla {
+  display: grid;
+  gap: 18px;
+}
+
+.campo {
+  display: grid;
+  gap: 6px;
+}
+
+.campo label {
+  font: 700 0.9375rem/1.3 var(--font-texto);
+  color: var(--cal);
+}
+
+.opcional {
+  font-weight: 500;
+  color: var(--cal-suave);
+}
+
+.campo input,
+.campo textarea {
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 14px;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  background: var(--cal);
+  color: var(--tinta);
+  font: 500 1.0625rem/1.35 var(--font-texto);
+  caret-color: var(--zarcao);
+  transition: border-color 0.15s var(--ease-saida);
+}
+
+.campo textarea {
+  resize: vertical;
+  min-height: 76px;
+}
+
+.campo input::placeholder,
+.campo textarea::placeholder { color: #5d647a; opacity: 1; }
+
+.campo input:focus-visible,
+.campo textarea:focus-visible {
+  outline: 3px solid var(--canario);
+  outline-offset: 2px;
+}
+
+.campo[data-erro] input { border-color: var(--zarcao); }
+
+.campo__dica {
+  margin: 0;
+  color: var(--cal-suave);
+  font-size: 0.8125rem;
+}
+
+.campo__erro,
+.ficha__erro {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin: 0;
+  color: var(--canario);
+  font: 700 0.9375rem/1.35 var(--font-texto);
+}
+
+.ficha__erro {
+  padding: 12px 14px;
+  background: var(--giz-caixa) center / 100% 100% no-repeat;
+}
+
+.ficha__erro:focus { outline: none; }
+
+/* Placa Mercosul */
+.placa {
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--cal);
+  box-shadow: inset 0 0 0 2px var(--tinta);
+}
+
+.placa__faixa {
+  display: block;
+  padding: 3px 0 2px;
+  background: #1c3e9c;
+  color: var(--cal);
+  font: 800 0.625rem/1.2 var(--font-texto);
+  letter-spacing: 0.32em;
+  text-align: center;
+  border-bottom: 2px solid var(--tinta);
+}
+
+.campo .placa input {
+  min-height: 46px;
+  border-radius: 0;
+  background: transparent;
+  text-align: center;
+  text-transform: uppercase;
+  font: 700 1.375rem/1 var(--font-texto);
+  font-stretch: 80%;
+  letter-spacing: 0.08em;
+}
+
+.campo .placa input::placeholder {
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  color: #666d82;
+}
+
+.resumo {
+  padding: 14px 16px 15px;
+  background: var(--giz-caixa) center / 100% 100% no-repeat;
+  color: var(--giz);
+}
+
+.resumo:empty { display: none; }
+
+.resumo p { margin: 0; }
+
+.resumo__servico {
+  font: 900 1.375rem/1.1 var(--font-pincel);
+  text-transform: uppercase;
+  color: var(--cal);
+}
+
+.resumo__quando {
+  margin-top: 4px !important;
+  color: var(--cal);
+  font-weight: 700;
+}
+
+/* Botão principal: placa amarela pintada */
+.placa-botao {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 60px;
+  padding: 12px 18px 13px;
+  border: 0;
+  border-radius: 6px 4px 7px 5px / 5px 7px 4px 6px;
+  background: var(--canario);
+  color: var(--tinta);
+  font: 900 1.5rem/1 var(--font-pincel);
+  text-transform: uppercase;
+  text-decoration: none;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 2px 0 rgb(0 0 0 / 0.3), 0 8px 16px -8px rgb(0 0 0 / 0.5);
+  transition: background-color 0.15s var(--ease-saida), transform 0.15s var(--ease-saida);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.placa-botao:hover { background: var(--canario-escuro); }
+.placa-botao:active { transform: translateY(1px); }
+.placa-botao:disabled { cursor: progress; background: var(--canario-escuro); }
+
+.placa-botao--cal {
+  background: var(--cal);
+  color: var(--muro);
+}
+.placa-botao--cal:hover { background: #ffffff; }
+
+.ficha__nota {
+  margin: -4px 0 0;
+  color: var(--cal-suave);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* Pincel correndo dentro do botão enquanto agenda */
+.placa-botao { position: relative; overflow: hidden; }
+
+.placa-botao[aria-busy='true']::after {
+  content: '';
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 10px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--tinta);
+  transform-origin: left center;
+  animation: pincel-correndo 1.1s var(--ease-saida) infinite;
+}
+
+@keyframes pincel-correndo {
+  from { transform: scaleX(0); opacity: 1; }
+  80% { transform: scaleX(1); opacity: 1; }
+  to { transform: scaleX(1); opacity: 0; }
+}
+
+.botao-giz {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 10px 16px;
+  border: 0;
+  background: var(--giz-caixa) center / 100% 100% no-repeat;
+  color: var(--cal);
+  font: 700 1rem/1.2 var(--font-texto);
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.15s var(--ease-saida);
+}
+
+.botao-giz:hover { background-color: rgb(243 245 241 / 0.08); }
+
+.link-giz {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 8px 0;
+  color: var(--cal);
+  font: 700 1rem/1.3 var(--font-texto);
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-underline-offset: 0.3em;
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------------ */
+/* Agendamento pintado no muro                                         */
+
+.pintado {
+  padding: 8px 0 40px;
+}
+
+.pintado:focus { outline: none; }
+
+.pintado__cursiva {
+  margin: 0;
+  font: 400 clamp(2.2rem, 10vw, 3rem)/1 var(--font-cursiva);
+  color: var(--canario);
+  text-shadow: var(--sombra-curta);
+  rotate: -5deg;
+  width: fit-content;
+}
+
+.pintado__dia {
+  margin: 10px 0 0;
+  font-family: var(--font-pincel);
+  font-weight: 900;
+  font-size: clamp(3.4rem, 17vw, 6rem);
+  line-height: 0.94;
+  text-transform: uppercase;
+  color: var(--cal);
+}
+
+.pintado__hora {
+  display: block;
+  margin: 2px 0 0;
+  font: 900 clamp(2.6rem, 13vw, 4.5rem)/1 var(--font-pincel);
+  color: var(--canario);
+}
+
+.tinta {
+  display: inline-block;
+  text-shadow: var(--sombra-pintada);
+}
+
+.pintado__ficha {
+  margin: 26px 0 0;
+  display: grid;
+  gap: 0;
+}
+
+.pintado__ficha > div {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  gap: 12px;
+  position: relative;
+  padding: 10px 0 11px;
+}
+
+.pintado__ficha dt {
+  color: var(--cal-suave);
+  font-size: 0.875rem;
+  padding-top: 2px;
+}
+
+.pintado__ficha dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.pintado__codigo {
+  font: 900 1.375rem/1 var(--font-pincel);
+  letter-spacing: 0.12em;
+  color: var(--canario);
+}
+
+.pintado__acoes {
+  display: grid;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.pintado__acoes .duas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.pintado__mais {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 18px;
+  color: var(--cal-suave);
+  font-size: 0.875rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+
+  .etapa:not([hidden]) {
+    animation: surge 0.42s var(--ease-saida);
+  }
+
+  .etapa.feita .etapa__check path {
+    stroke-dasharray: 40;
+    stroke-dashoffset: 40;
+    animation: check-pincel 0.45s var(--ease-saida) 0.05s forwards;
+  }
+
+  .pintado .tinta {
+    clip-path: inset(-0.2em 100% -0.3em -0.1em);
+    text-shadow: none;
+    animation:
+      pincelada 0.62s var(--ease-saida) forwards,
+      sombra-assenta 0.3s var(--ease-saida) forwards;
+    animation-delay: calc(var(--i, 0) * 210ms + 120ms), calc(var(--i, 0) * 210ms + 700ms);
+  }
+
+  .pintado__cursiva,
+  .pintado__ficha,
+  .pintado .giz-nota,
+  .pintado__acoes,
+  .pintado__mais {
+    opacity: 0;
+    animation: aparece 0.5s var(--ease-saida) 0.95s forwards;
+  }
+}
+
+@keyframes surge {
+  from { opacity: 0; translate: 0 10px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes check-pincel {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes pincelada {
+  to { clip-path: inset(-0.2em -0.3em -0.3em -0.1em); }
+}
+
+@keyframes sombra-assenta {
+  to { text-shadow: var(--sombra-pintada); }
+}
+
+@keyframes aparece {
+  to { opacity: 1; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Rodapé                                                              */
+
+.rodape {
+  position: relative;
+  padding: 22px 0 36px;
+  color: var(--cal-suave);
+  font-size: 0.875rem;
+}
+
+.rodape__links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+}
+
+.rodape__links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--cal);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.rodape__links a:hover { text-decoration: underline; }
+
+/* ------------------------------------------------------------------ */
+/* Telas largas: o letreiro à esquerda, a tabela e a agenda à direita   */
+
+@media (min-width: 1000px) {
+  .muro {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    column-gap: clamp(48px, 7vw, 112px);
+    max-width: 1240px;
+    padding-inline: 48px;
+  }
+
+  .letreiro {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: start;
+    position: sticky;
+    top: 0;
+    padding-top: 88px;
+  }
+
+  .letreiro__nome { --tam: clamp(4.5rem, 7.4vw, 6rem); }
+
+  /* Quadro de horário pintado, como na parede da oficina */
+  .letreiro__horario {
+    display: grid;
+    gap: 2px;
+    list-style: none;
+    margin: 40px 0 0;
+    padding: 18px 0 0;
+    position: relative;
+  }
+
+  .letreiro__horario::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 3px;
+    background: var(--giz-linha) 0 0 / 120px 3px repeat-x;
+  }
+
+  .letreiro__horario li {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    max-width: 22rem;
+    font-family: var(--font-pincel);
+    font-weight: 900;
+    font-size: 1.75rem;
+    line-height: 1.2;
+    text-transform: uppercase;
+    text-shadow: var(--sombra-curta);
+  }
+
+  .letreiro__horario li span:last-child { color: var(--canario); }
+
+  .agendar,
+  .pintado {
+    grid-column: 2;
+    grid-row: 1;
+    padding-top: 72px;
+  }
+
+  .etapa:first-child { padding-top: 0; }
+  .etapa:first-child::before { display: none; }
+
+  .rodape { grid-column: 1 / -1; }
+
+  .ficha__dupla { grid-template-columns: 1fr 12rem; }
+
+  .servico__nome { font-size: 2rem; max-width: 16ch; }
+  .servico__preco { font-size: 2.1rem; }
+  .servico__meta { font-size: 0.9375rem; }
+
+  .dias {
+    flex-wrap: wrap;
+    overflow: visible;
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+
+  .dias__mes {
+    writing-mode: horizontal-tb;
+    rotate: none;
+    flex-basis: 100%;
+    margin: 6px 0 0;
+  }
+
+  .aviso-exemplo { margin-bottom: -40px; }
+}

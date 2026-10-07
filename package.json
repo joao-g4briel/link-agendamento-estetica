@@ -1,0 +1,14 @@
+{
+  "name": "link-agendamento-estetica",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Link de agendamento para a bio de uma estética automotiva, com agenda e fila de retorno por WhatsApp.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node server.mjs"
+  }
+}

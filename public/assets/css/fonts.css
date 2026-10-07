@@ -1,0 +1,30 @@
+/* Fontes servidas pelo próprio projeto (licenças em assets/fonts). */
+@font-face {
+  font-family: 'Londrina Solid';
+  src: url('../fonts/londrina-solid-900.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Londrina Solid';
+  src: url('../fonts/londrina-solid-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Yellowtail';
+  src: url('../fonts/yellowtail-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Archivo';
+  src: url('../fonts/archivo-var.woff2') format('woff2');
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-style: normal;
+  font-display: swap;
+}
