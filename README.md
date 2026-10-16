@@ -1,6 +1,6 @@
-# Link de agendamento — estética automotiva
+# Mão de Ouro — link de agendamento
 
-Link para a bio do Instagram: o cliente escolhe o serviço, vê só os horários que estão livres e o agendamento cai direto na agenda. Quando o serviço é concluído, o sistema marca quando aquele carro deve voltar (renovar a vitrificação, nova higienização) e, no dia, coloca o cliente na fila de retornos do painel com a mensagem de WhatsApp pronta.
+Link para a bio do Instagram da **Mão de Ouro Estética Automotiva** (Rua Maria Elizabete Soares Lira, 419 · Igarassu-PE · WhatsApp (81) 97312-7101 · @maodeouroestetica_automotiva): o cliente escolhe o serviço, vê só os horários que estão livres e o agendamento cai direto na agenda. Quando o serviço é concluído, o sistema marca quando aquele carro deve voltar (renovar a vitrificação, nova higienização) e, no dia, coloca o cliente na fila de retornos do painel com a mensagem de WhatsApp pronta.
 
 ## Rodar
 
@@ -37,7 +37,7 @@ npm start
 
 ## Importante: o banco de dados ainda é placeholder
 
-Os dados ficam no `localStorage` do navegador, com dados de exemplo (nome, serviços, preços, clientes e telefones fictícios; os telefones usam o formato 9 0000-0xxx, que não existe).
+Os dados ficam no `localStorage` do navegador. Nome, endereço, WhatsApp e Instagram já são os da Mão de Ouro; **serviços, preços e clientes ainda são de exemplo** (telefones no formato (81) 9 0000-0xxx, que não existe). Troque os serviços em **Painel → Serviços** e zere os clientes em **Painel → Ajustes → Começar do zero**.
 
 Isso quer dizer que **o link e o painel só conversam no mesmo navegador**. Se você publicar como está, o agendamento que um cliente fizer no celular dele **não chega** no painel do dono. Para usar de verdade, falta um backend.
 
@@ -60,7 +60,10 @@ Com o backend, também entram: login no painel (hoje ele não tem senha) e o env
 
 ## Publicar
 
-Hoje tudo é estático: a pasta `public/` pode ir para qualquer hospedagem de site estático. Lembre do aviso acima sobre os dados. Depois de publicar, coloque o endereço final em **Painel → Ajustes → Link para a bio**: é ele que vai nas mensagens de retorno.
+Hoje tudo é estático: a pasta `public/` pode ir para qualquer hospedagem de site estático. Lembre do aviso acima sobre os dados. Depois de publicar:
+
+- coloque o endereço final em **Painel → Ajustes → Link para a bio**: é ele que vai nas mensagens de retorno;
+- em `public/index.html`, troque `content="assets/img/compartilhar.jpg"` da tag `og:image` pelo endereço completo (ex.: `https://seudominio.com.br/assets/img/compartilhar.jpg`), para a prévia com a logo aparecer quando o link for colado no WhatsApp.
 
 ## Estrutura
 
@@ -69,7 +72,7 @@ public/
   index.html               link público
   painel/index.html        painel do dono
   assets/
-    css/muro.css           visual do link (o muro pintado)
+    css/muro.css           visual do link (letreiro dourado sobre preto)
     css/painel.css         visual do painel
     js/booking.js          comportamento do link
     js/painel/*.js         telas do painel
@@ -77,7 +80,9 @@ public/
     js/data/api.js         a única porta para os dados (trocar pelo backend)
     js/data/store.js       placeholder no localStorage
     js/data/seed.js        dados de exemplo
-    fonts/                 Londrina Solid, Yellowtail, Archivo (licenças junto)
+    fonts/                 Saira, normal e itálico (licença OFL junto)
+    img/logo-*.webp        logo da Mão de Ouro, fundo transparente (original em brand/)
+    img/compartilhar.jpg   prévia do link no WhatsApp/Instagram
     icons.svg              ícones Lucide (ISC) e Simple Icons (CC0)
 server.mjs                 servidor local sem dependências
 PRODUCT.md                 contexto do produto (usado pela skill impeccable)
@@ -86,4 +91,6 @@ DESIGN.md                  sistema visual
 
 ## Design
 
-O visual foi feito com a skill [impeccable](https://github.com/pbakaus/impeccable), instalada em `.claude/skills/impeccable`. O link público é o muro pintado da estética: letreiro em letra de pincel com sombra, tabela de serviços como as de lava-jato, horários livres riscados a giz e o horário escolhido pintado por cima. O painel usa o mesmo muro como faixa de topo, com a busca e o quadro do dia (carro = tinta, vaga livre = giz). Detalhes em `DESIGN.md`.
+O visual foi feito com a skill [impeccable](https://github.com/pbakaus/impeccable), instalada em `.claude/skills/impeccable`, a partir da logo da Mão de Ouro: preto envernizado, dourado cromado da logo nos títulos e no que o cliente escolhe, prata nos rótulos e Saira larga e inclinada como as letras da marca. A tabela de serviços é montada como um letreiro, horários livres aparecem em contorno prateado e o escolhido fica dourado; ao confirmar, um brilho de polimento passa pela data. O painel usa a mesma faixa preta com a logo, a busca em forma de placa Mercosul e o quadro do dia. Detalhes em `DESIGN.md`.
+
+Para trocar a logo, substitua `public/assets/img/logo-700.webp` e `logo-1400.webp` (fundo transparente) e `compartilhar.jpg`.

@@ -59,7 +59,16 @@ function cycleLabel(code) {
 const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
 
 function mapsUrl(address) {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+  const query = `${address.replace(/\s*·\s*/g, ', ')}, Brasil`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+/** Endereço com o trecho "número · cidade" sem quebra, para o ponto não ficar sozinho no fim da linha. */
+function addressHTML(address) {
+  const [street, ...rest] = address.split(' · ');
+  if (!rest.length) return address;
+  const cut = street.lastIndexOf(' ');
+  return html`${street.slice(0, cut + 1)}<span class="sem-quebra">${street.slice(cut + 1)} · ${rest.join(' · ')}</span>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -70,11 +79,10 @@ function renderHeader() {
   document.title = `${shop.name} · Agende seu horário`;
   $('#aviso-exemplo').hidden = !shop.isExample;
   $('#letreiro').removeAttribute('aria-busy');
-  $('#nome-estetica').textContent = shop.name;
-  $('#tagline').textContent = shop.tagline || '';
+  $('#logo').alt = shop.tagline ? `${shop.name} — ${shop.tagline}` : shop.name;
 
   $('#info').innerHTML = html`
-    ${shop.address ? html`<li>${icon('map-pin')}<a href="${mapsUrl(shop.address)}" target="_blank" rel="noopener">${shop.address}</a></li>` : ''}
+    ${shop.address ? html`<li>${icon('map-pin')}<a href="${mapsUrl(shop.address)}" target="_blank" rel="noopener">${addressHTML(shop.address)}</a></li>` : ''}
     <li>${icon('clock')}<span>${openingLine(shop.hours)}</span></li>
   `;
 
@@ -151,7 +159,6 @@ function renderFooter() {
 
 function renderLoadError() {
   $('#letreiro').removeAttribute('aria-busy');
-  $('#nome-estetica').textContent = 'Agende seu horário';
   $('#tabela').removeAttribute('aria-busy');
   $('#tabela').innerHTML = html`<li class="vazio-giz">Não deu para carregar a tabela de serviços.
     <button type="button" class="link-giz" id="tentar-de-novo">Tentar de novo</button></li>`;
@@ -384,7 +391,7 @@ function setFieldError(name, message) {
 function clientValidate(data) {
   const errors = {};
   if (!data.name || data.name.trim().length < 2) errors.name = 'Diga seu nome para a gente te chamar.';
-  if (!isValidPhone(data.phone)) errors.phone = 'Confira o WhatsApp: DDD e número, ex.: (11) 91234-5678.';
+  if (!isValidPhone(data.phone)) errors.phone = 'Confira o WhatsApp: DDD e número, ex.: (81) 91234-5678.';
   if (!data.vehicle || data.vehicle.trim().length < 2) errors.vehicle = 'Diga qual é o carro (modelo e cor).';
   return errors;
 }
@@ -508,8 +515,9 @@ function renderPainted(result) {
 
   const section = $('#pintado');
   section.innerHTML = html`
-    <p class="pintado__cursiva">tá marcado!</p>
     <h2 class="pintado__dia" id="pintado-titulo">
+      <span class="visualmente-oculto">Agendamento confirmado:</span>
+      <svg class="pintado__check" aria-hidden="true"><use href="#pincel-check"/></svg>
       <span class="tinta" style="--i:0">${dayWord}</span>
       <span class="tinta" style="--i:1">${formatDateShort(a.date)}</span>
       <span class="pintado__hora tinta" style="--i:2">${a.start}</span>
@@ -517,7 +525,7 @@ function renderPainted(result) {
     <dl class="pintado__ficha">
       <div><dt>Serviço</dt><dd>${service.name}, carro pronto por volta das ${end}</dd></div>
       <div><dt>Carro</dt><dd>${a.vehicle}${a.plate ? ` · ${a.plate}` : ''}</dd></div>
-      ${shop.address ? html`<div><dt>Onde</dt><dd>${shop.address}</dd></div>` : ''}
+      ${shop.address ? html`<div><dt>Onde</dt><dd>${addressHTML(shop.address)}</dd></div>` : ''}
       <div><dt>Código</dt><dd class="pintado__codigo">${a.code}</dd></div>
     </dl>
     ${nextReturn ? html`<p class="giz-nota giz-nota--retorno">${icon('repeat')}<span>Em <strong>${formatMonthYear(nextReturn.date)}</strong> é hora de ${nextReturn.action || 'voltar'}. A estética te chama no WhatsApp.</span></p>` : ''}

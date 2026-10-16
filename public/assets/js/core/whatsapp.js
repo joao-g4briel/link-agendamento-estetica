@@ -5,7 +5,7 @@ import { diffDays, today } from './dates.js';
 import { firstName, formatDateLong, formatElapsed, normalizePhone } from './format.js';
 
 export const DEFAULT_RETURN_TEMPLATE =
-  'Oi, {nome}! Aqui é do {estetica}. Faz {tempo} que cuidamos do seu {carro} ({servico}). ' +
+  'Oi, {nome}! Aqui é da {estetica}. Faz {tempo} que cuidamos do seu {carro} ({servico}). ' +
   'Tá na hora de {acao}. Escolha um horário por aqui: {link}';
 
 export function waLink(phone, text) {
@@ -37,7 +37,7 @@ export function returnMessage({ settings, ret, customer, service, baseUrl }) {
 
 export function appointmentMessage({ settings, appointment, customer, service }) {
   return (
-    `Oi, ${firstName(customer.name)}! Aqui é do ${settings.name}. ` +
+    `Oi, ${firstName(customer.name)}! Aqui é da ${settings.name}. ` +
     `Confirmando seu horário: ${service.name.toLowerCase()} na ${formatDateLong(appointment.date)}, às ${appointment.start}. ` +
     `Endereço: ${settings.address}. Qualquer coisa, é só responder aqui.`
   );

@@ -39,15 +39,20 @@ Cada serviço tem o seu ciclo de retorno. Quando o carro é concluído, o próxi
 - Link público: escolher serviço → ver dias e horários livres → informar nome, WhatsApp e carro → confirmação.
 - Painel do dono: agenda (dia/semana), concluir / faltou / cancelar, fila de retornos com WhatsApp em 1 clique, serviços com duração, preço e intervalo de retorno, horário de funcionamento, vagas simultâneas e folgas.
 - Banco de dados é placeholder (dados de exemplo no navegador). Nada é compartilhado entre aparelhos até existir um backend.
-- Undecided: pagamento/sinal online, lembrete na véspera, login real do painel, nome e identidade da estética.
+- Undecided: pagamento/sinal online, lembrete na véspera, login real do painel, serviços e preços reais.
 
 ## Brand Commitments
 
-None yet. Nome, logo, endereço e contato da estética ainda não foram informados; a interface usa um nome de exemplo editável nas configurações.
+- **Nome:** Mão de Ouro — Estética Automotiva.
+- **Logo (binding):** silhueta de carro esportivo em traço dourado sobre o nome "MÃO DE OURO" em letras largas, pesadas e inclinadas com acabamento cromado dourado, e "ESTÉTICA AUTOMOTIVA" em caixa alta prateada bem espaçada, ladeada por filetes dourados. Fundo preto. Original fornecido pelo dono: `brand/logo-original.png`; versões web em `public/assets/img/logo-700.webp` e `logo-1400.webp` (fundo preto convertido em transparência).
+- **Cores (pinned pelo dono: "as cores conforme a logo"):** preto, dourado metálico (do claro ao bronze) e prata/branco.
+- **Tipografia (pinned: "uma fonte que combine com a estética da logo"):** sans larga, pesada e inclinada para títulos; caixa alta prateada com espaçamento largo para rótulos.
+- **Contato:** Rua Maria Elizabete Soares Lira, 419 · Igarassu (PE) · WhatsApp (81) 97312-7101 · Instagram @maodeouroestetica_automotiva.
 
 ## Evidence on Hand
 
-Nenhuma. Não há fotos, depoimentos, avaliações, número de clientes nem preços reais. Os serviços e valores de exemplo devem ser identificados como exemplo; não inventar depoimentos, notas, contagens de clientes ou selos.
+- Logo oficial (acima). Endereço, WhatsApp e Instagram reais.
+- Não há fotos de trabalhos, depoimentos, avaliações, número de clientes nem preços reais. Os serviços e valores ainda são de exemplo e devem ser identificados como exemplo; não inventar depoimentos, notas, contagens de clientes ou selos.
 
 ## Product Principles
 

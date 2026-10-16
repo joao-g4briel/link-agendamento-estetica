@@ -1,39 +1,46 @@
-/* Link de agendamento — o muro pintado da estética.
-   Tinta: letras em cal com sombra; giz: o que ainda está em aberto. */
+/* Link de agendamento — Mão de Ouro.
+   O letreiro dourado sobre verniz preto: dourado da logo nos títulos e no que
+   foi escolhido, contorno prateado no que ainda está em aberto, Saira larga e
+   inclinada como as letras da marca. (Os nomes de classe vêm da primeira
+   versão, o "muro pintado": giz = contorno em aberto, tinta = escolhido.) */
 
 :root {
   color-scheme: dark;
 
-  --muro: #1f3a9e;
-  --muro-fundo: #19318a;
-  --muro-claro: #2a4bb5;
-  --cal: #f3f5f1;
-  --cal-suave: #c9d3f2;
-  --giz: rgb(243 245 241 / 0.78);
-  --giz-traco: rgb(243 245 241 / 0.5);
-  --giz-guia: rgb(243 245 241 / 0.1);
-  --zarcao: #e2471d;
-  --canario: #f5c400;
-  --canario-escuro: #e0b200;
-  --tinta: #121624;
-  --tinta-suave: #3b4670;
-  --fita: #e9d9a4;
+  --preto: #0b0a08;
+  --preto-2: #13110d;
+  --preto-3: #1c1913;
+  --ouro-luz: #fef29d;
+  --ouro-claro: #ffdb3a;
+  --ouro: #f3b32c;
+  --ouro-medio: #d9941a;
+  --bronze: #a95a03;
+  --bronze-escuro: #3d2a05;
+  --prata: #ece9e2;
+  --prata-2: #bdb8ae;
+  --prata-3: #918b7f;
+  --tinta: #0b0a08;
+  --erro: #ff9273;
+  --contorno: rgb(230 226 216 / 0.42);
+  --contorno-forte: rgb(236 233 226 / 0.75);
+  --linha-quieta: rgb(230 226 216 / 0.13);
+  --campo-borda: #6f685a;
 
-  --sombra-pintada: 0.03em 0.03em 0 var(--tinta), 0.06em 0.06em 0 var(--tinta), 0.09em 0.09em 0 var(--zarcao);
-  --sombra-curta: 0.04em 0.05em 0 var(--tinta);
+  /* O cromado da logo: luz em cima, "horizonte" escuro no meio, reflexo embaixo. */
+  --ouro-metal: linear-gradient(180deg, #fef9b0 0%, #ffdb3a 28%, #f3b32c 46%, #a95a03 50%, #d9941a 63%, #fef29d 100%);
+  --prata-metal: linear-gradient(180deg, #ffffff 0%, #ecebe8 44%, #8e8b85 50%, #d4d2cc 64%, #fafafa 100%);
+  /* Preenchimento das placas douradas (sem horizonte, para o texto preto ler bem). */
+  --ouro-placa: linear-gradient(180deg, #ffe58a 0%, #f6c445 42%, #eaa925 100%);
+  --prata-placa: linear-gradient(180deg, #ffffff 0%, #e2e0da 100%);
+  --brilho: linear-gradient(105deg, transparent 40%, rgb(255 255 255 / 0.95) 50%, transparent 60%);
+  /* Os filetes dourados que ladeiam "ESTÉTICA AUTOMOTIVA" na logo. */
+  --filete: linear-gradient(90deg, transparent, var(--ouro) 14%, var(--ouro) 86%, transparent);
+  --filete-saida: linear-gradient(90deg, var(--ouro), rgb(243 179 44 / 0));
 
-  --font-pincel: 'Londrina Solid', 'Arial Narrow', sans-serif;
-  --font-cursiva: 'Yellowtail', 'Brush Script MT', cursive;
-  --font-texto: 'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-
-  --guia: 12px;
+  --font: 'Saira', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --inclinacao: -10deg;
   --gutter: clamp(16px, 5vw, 40px);
   --ease-saida: cubic-bezier(0.22, 1, 0.36, 1);
-
-  /* Contornos riscados a giz (traço irregular, espessura fixa). */
-  --giz-caixa: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 60' preserveAspectRatio='none'%3E%3Cpath d='M2.6 4.4 C30 2.2 70 3.6 97.6 2.9 C98.6 22 97.2 40 97.9 57.2 C70 58.4 32 57 2.3 57.8 C1.6 40 3.1 21 2.6 4.4Z' fill='none' stroke='%23f3f5f1' stroke-opacity='.62' stroke-width='2' vector-effect='non-scaling-stroke' stroke-dasharray='22 2.5 13 1.8 30 3' stroke-linecap='round'/%3E%3C/svg%3E");
-  --giz-risco: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 60' preserveAspectRatio='none'%3E%3Cpath d='M8 52 C30 38 64 22 92 8' fill='none' stroke='%23f3f5f1' stroke-opacity='.5' stroke-width='2' vector-effect='non-scaling-stroke' stroke-linecap='round'/%3E%3C/svg%3E");
-  --giz-linha: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='3' viewBox='0 0 120 3'%3E%3Cpath d='M1 1.6 13 1.3M18 1.7 26 1.5M31 1.3 47 1.7M52 1.5 58 1.6M63 1.7 80 1.3M85 1.6 94 1.4M99 1.3 117 1.7' stroke='%23f3f5f1' stroke-opacity='.55' stroke-width='2' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -43,27 +50,32 @@ html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   scroll-padding-top: 16px;
-  scrollbar-color: var(--giz-traco) var(--muro-fundo);
+  scrollbar-color: rgb(230 226 216 / 0.28) var(--preto);
 }
 
 body {
   margin: 0;
   min-height: 100dvh;
-  background: var(--muro) url('../img/reboco.svg');
-  color: var(--cal);
-  font: 400 1rem/1.5 var(--font-texto);
+  background:
+    url('../img/flocos.svg'),
+    radial-gradient(140% 50% at 50% 0%, rgb(255 214 120 / 0.075), transparent 72%),
+    var(--preto);
+  color: var(--prata);
+  font-family: var(--font);
+  font-size: 1rem;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-::selection { background: var(--canario); color: var(--tinta); }
+::selection { background: var(--ouro); color: var(--tinta); }
 
 :focus-visible {
-  outline: 3px solid var(--canario);
+  outline: 2px solid var(--ouro-claro);
   outline-offset: 3px;
 }
 
-a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
+a { color: inherit; text-underline-offset: 0.22em; text-decoration-thickness: 1px; }
 
 .defs { position: absolute; }
 
@@ -82,22 +94,52 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
   white-space: nowrap;
 }
 
+/* Texto em ouro (e prata) metálico: só em títulos grandes. */
+.etapa__titulo span,
+.pintado .tinta {
+  background: var(--ouro-metal);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0.045em 0 #000);
+}
+
+.pintado .pintado__hora.tinta { background-image: var(--prata-metal); }
+
+/* Rótulo em caixa alta prateada com filete dourado, como na logo. */
+.horarios__titulo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  color: var(--prata);
+  font-weight: 500;
+  font-size: 0.8125rem;
+  font-stretch: 118%;
+  letter-spacing: 0.3em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.horarios__titulo::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--filete-saida);
+  opacity: 0.8;
+}
+
 /* ------------------------------------------------------------------ */
-/* Fita crepe com o aviso de demonstração                              */
+/* Aviso de demonstração                                               */
 
 .aviso-exemplo {
-  position: relative;
-  z-index: 2;
-  width: fit-content;
-  max-width: calc(100% - 2 * var(--gutter));
-  margin: 0 auto -10px;
-  padding: 6px 14px 5px;
-  background: var(--fita);
-  color: var(--tinta);
-  font: 600 0.8125rem/1.3 var(--font-texto);
+  margin: 0;
+  padding: 8px var(--gutter);
+  border-bottom: 1px solid var(--linha-quieta);
+  color: var(--prata-3);
+  font-size: 0.8125rem;
+  font-weight: 500;
   text-align: center;
-  rotate: -1.2deg;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
 }
 
 /* ------------------------------------------------------------------ */
@@ -110,62 +152,30 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
 }
 
 /* ------------------------------------------------------------------ */
-/* Letreiro                                                            */
+/* Letreiro: a logo, endereço e horário                                */
 
 .letreiro {
-  padding: 34px 0 22px;
+  padding: 22px 0 20px;
 }
 
-.letreiro__nome {
-  --tam: clamp(3.4rem, 17vw, 6rem);
-  --linha: calc(var(--tam) * 0.94);
+.letreiro__logo {
   margin: 0;
-  font-family: var(--font-pincel);
-  font-weight: 900;
-  font-size: var(--tam);
-  line-height: var(--linha);
-  text-transform: uppercase;
-  letter-spacing: 0.005em;
-  color: var(--cal);
-  text-shadow: var(--sombra-pintada);
-  text-wrap: balance;
-  overflow-wrap: anywhere;
-  /* Linhas de giz do pintor: linha de base e altura das maiúsculas. */
-  background:
-    repeating-linear-gradient(to bottom,
-      transparent 0 calc(var(--linha) * 0.08),
-      var(--giz-guia) calc(var(--linha) * 0.08) calc(var(--linha) * 0.08 + 1px),
-      transparent calc(var(--linha) * 0.08 + 1px) calc(var(--linha) * 0.86),
-      var(--giz-guia) calc(var(--linha) * 0.86) calc(var(--linha) * 0.86 + 1px),
-      transparent calc(var(--linha) * 0.86 + 1px) var(--linha));
-  background-size: 100vw var(--linha);
-  background-position: calc(var(--gutter) * -1) 0;
 }
 
-.letreiro__nome .vazio {
-  color: transparent;
-  text-shadow: none;
-  background: var(--giz-guia);
-  border-radius: 4px;
-}
-
-.letreiro__cursiva {
-  margin: -0.18em 0 0 0.5em;
-  font: 400 clamp(1.9rem, 8.5vw, 2.6rem) / 1.1 var(--font-cursiva);
-  color: var(--canario);
-  text-shadow: var(--sombra-curta);
-  rotate: -4deg;
-  transform-origin: left center;
-  width: fit-content;
+.letreiro__logo img {
+  display: block;
+  width: 100%;
+  max-width: 520px;
+  height: auto;
 }
 
 .letreiro__info {
   list-style: none;
-  margin: 18px 0 0;
+  margin: 14px 0 0;
   padding: 0;
   display: grid;
   gap: 6px;
-  color: var(--cal-suave);
+  color: var(--prata-2);
   font-size: 0.9375rem;
 }
 
@@ -175,10 +185,9 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
   align-items: baseline;
 }
 
-.letreiro__info a { color: var(--cal); }
+.letreiro__info .icone { color: var(--ouro); }
+.letreiro__info a { color: var(--prata); }
 
-/* Anotações a giz: texto riscado na parede, sublinhado a giz, sem caixa
-   (a caixa de giz é só de coisa que se toca). */
 .giz-nota {
   display: flex;
   align-items: flex-start;
@@ -187,19 +196,41 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
   max-width: 100%;
   margin: 16px 0 0;
   padding: 0 0 9px;
-  color: var(--giz);
-  font: 600 0.9375rem/1.4 var(--font-texto);
-  background: var(--giz-linha) 0 100% / 120px 3px repeat-x;
+  color: var(--prata-2);
+  font-weight: 500;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  background: var(--filete-saida) 0 100% / 100% 1px no-repeat;
 }
 
-.giz-nota .icone { margin-top: 0.15em; }
-.giz-nota strong { color: var(--cal); font-weight: 800; }
+.giz-nota .icone { margin-top: 0.15em; color: var(--ouro); }
+.giz-nota strong { color: var(--prata); font-weight: 700; }
+
+.letreiro .giz-nota { padding-bottom: 0; background: none; }
 
 .giz-nota--retorno { margin-top: 22px; }
 
-.letreiro .giz-nota {
-  padding-bottom: 0;
-  background: none;
+.letreiro__horario { display: none; }
+
+/* ------------------------------------------------------------------ */
+/* Etapas                                                              */
+
+.etapa {
+  position: relative;
+  padding: 26px 0 32px;
+}
+
+.etapa::before,
+.rodape::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: var(--filete);
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 .etapa__cabeca {
@@ -209,20 +240,52 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
   gap: 12px;
 }
 
+.etapa__titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-style: italic;
+  font-weight: 900;
+  font-stretch: 122%;
+  font-size: clamp(1.75rem, 7.6vw, 2.25rem);
+  line-height: 1.05;
+  text-transform: uppercase;
+  letter-spacing: 0.005em;
+}
+
+.etapa__check {
+  display: none;
+  width: 0.85em;
+  height: 0.85em;
+  color: var(--ouro);
+  filter: drop-shadow(0 0.04em 0 #000);
+}
+
+.etapa.feita .etapa__check { display: block; }
+
+.etapa__ajuda {
+  margin: 8px 0 0;
+  color: var(--prata-2);
+  font-size: 0.9375rem;
+}
+
 .giz-anotacao {
   position: relative;
   flex: none;
   margin: 2px 0 -18px;
   padding-right: 4px;
-  color: var(--giz);
-  font: 600 0.8125rem/1.25 var(--font-texto);
+  color: var(--prata-2);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25;
   text-align: right;
 }
 
 .giz-anotacao strong {
   display: block;
-  color: var(--cal);
-  font-weight: 800;
+  color: var(--ouro);
+  font-weight: 700;
   font-size: 0.9375rem;
 }
 
@@ -231,67 +294,8 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
   width: 40px;
   height: 34px;
   margin: 2px 6px 0 auto;
-  color: var(--giz-traco);
+  color: rgb(243 179 44 / 0.6);
   rotate: 8deg;
-}
-
-.letreiro__horario { display: none; }
-
-/* ------------------------------------------------------------------ */
-/* Etapas                                                              */
-
-.etapa {
-  position: relative;
-  padding: 28px 0 32px;
-}
-
-.etapa::before,
-.rodape::before,
-.tabela > li + li::before,
-.pintado__ficha > div::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--giz-linha) 0 0 / 120px 3px repeat-x;
-  pointer-events: none;
-}
-
-.etapa::before,
-.rodape::before,
-.tabela > li + li::before { top: 0; }
-.pintado__ficha > div::after { bottom: 0; }
-
-.etapa__titulo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0;
-  font-family: var(--font-pincel);
-  font-weight: 900;
-  font-size: clamp(2rem, 9vw, 2.5rem);
-  line-height: 1;
-  text-transform: uppercase;
-  text-shadow: var(--sombra-pintada);
-}
-
-.etapa__check {
-  display: none;
-  width: 0.9em;
-  height: 0.9em;
-  color: var(--canario);
-  filter: drop-shadow(0.04em 0.05em 0 var(--tinta));
-}
-
-.etapa.feita .etapa__check {
-  display: block;
-}
-
-.etapa__ajuda {
-  margin: 8px 0 0;
-  color: var(--cal-suave);
-  font-size: 0.9375rem;
 }
 
 /* ------------------------------------------------------------------ */
@@ -304,7 +308,16 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
 }
 
 .tabela > li { position: relative; }
-.tabela > li + li::before { opacity: 0.7; }
+
+.tabela > li + li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: var(--linha-quieta);
+}
 
 .servico {
   appearance: none;
@@ -312,13 +325,13 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
   grid-template-columns: auto minmax(16px, 1fr) auto;
   align-items: end;
   column-gap: 10px;
-  width: calc(100% + 24px);
-  margin: 0 -12px;
-  padding: 14px 12px 15px;
+  width: calc(100% + 28px);
+  margin: 0 -14px;
+  padding: 15px 14px 16px;
   border: 0;
-  border-radius: 5px 3px 6px 4px / 4px 6px 3px 5px;
+  border-radius: 4px;
   background: transparent;
-  color: var(--cal);
+  color: var(--prata);
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -326,48 +339,57 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
   -webkit-tap-highlight-color: transparent;
 }
 
-.servico:hover { background: rgb(243 245 241 / 0.07); }
+.servico:hover { background: rgb(255 255 255 / 0.045); }
 
 .servico__nome {
-  font-family: var(--font-pincel);
-  font-weight: 900;
-  font-size: clamp(1.45rem, 6.4vw, 1.75rem);
-  line-height: 1.02;
+  font-style: italic;
+  font-weight: 800;
+  font-stretch: 112%;
+  font-size: clamp(1.2rem, 5.4vw, 1.5rem);
+  line-height: 1.08;
   text-transform: uppercase;
-  text-shadow: var(--sombra-curta);
-  max-width: 13ch;
+  max-width: 14ch;
 }
 
 .servico__pontos {
   align-self: end;
   height: 4px;
-  margin-bottom: 0.45em;
-  background: radial-gradient(circle, var(--giz-traco) 1.3px, transparent 1.8px) 0 50% / 9px 4px repeat-x;
+  margin-bottom: 0.4em;
+  background: radial-gradient(circle, rgb(243 179 44 / 0.55) 1.2px, transparent 1.7px) 0 50% / 8px 4px repeat-x;
 }
 
 .servico__preco {
   display: grid;
   justify-items: end;
-  font: 900 clamp(1.5rem, 6.6vw, 1.85rem) / 1 var(--font-pincel);
-  color: var(--canario);
-  text-shadow: var(--sombra-curta);
+  font-style: italic;
+  font-weight: 800;
+  font-stretch: 110%;
+  font-size: clamp(1.35rem, 6vw, 1.7rem);
+  line-height: 1;
+  color: var(--ouro);
   white-space: nowrap;
 }
 
 .servico__preco small {
-  font: 600 0.6875rem / 1.4 var(--font-texto);
-  color: var(--cal-suave);
-  text-shadow: none;
-  text-transform: lowercase;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 0.6875rem;
+  font-stretch: 105%;
+  line-height: 1.5;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--prata-3);
 }
 
 .servico__meta {
   grid-column: 1 / -1;
-  margin-top: 6px;
-  color: var(--cal-suave);
-  font-size: 0.9375rem;
-  font-variant-caps: all-small-caps;
-  letter-spacing: 0.03em;
+  margin-top: 7px;
+  color: var(--prata-2);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  font-stretch: 105%;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   font-variant-numeric: tabular-nums;
 }
 
@@ -381,34 +403,47 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
 }
 
 .servico[aria-pressed='true'] {
-  background: var(--cal);
-  color: var(--muro);
+  background: var(--ouro-placa);
+  color: var(--tinta);
 }
 
-.servico[aria-pressed='true'] .servico__nome,
-.servico[aria-pressed='true'] .servico__preco { text-shadow: none; }
 .servico[aria-pressed='true'] .servico__preco { color: var(--tinta); }
 .servico[aria-pressed='true'] .servico__preco small,
-.servico[aria-pressed='true'] .servico__meta { color: var(--tinta-suave); }
+.servico[aria-pressed='true'] .servico__meta { color: var(--bronze-escuro); }
 .servico[aria-pressed='true'] .servico__desc { display: block; color: var(--tinta); }
 .servico[aria-pressed='true'] .servico__pontos {
-  background-image: radial-gradient(circle, rgb(31 58 158 / 0.45) 1.3px, transparent 1.8px);
+  background-image: radial-gradient(circle, rgb(11 10 8 / 0.45) 1.2px, transparent 1.7px);
 }
 
 .servico--esqueleto {
   height: 74px;
   margin: 0;
-  background: linear-gradient(var(--giz-guia), var(--giz-guia)) 0 18px / 58% 22px no-repeat,
-              linear-gradient(var(--giz-guia), var(--giz-guia)) 100% 18px / 22% 22px no-repeat,
-              linear-gradient(var(--giz-guia), var(--giz-guia)) 0 50px / 40% 12px no-repeat;
+  background: linear-gradient(rgb(255 255 255 / 0.06), rgb(255 255 255 / 0.06)) 0 18px / 58% 20px no-repeat,
+              linear-gradient(rgb(255 255 255 / 0.06), rgb(255 255 255 / 0.06)) 100% 18px / 22% 20px no-repeat,
+              linear-gradient(rgb(255 255 255 / 0.06), rgb(255 255 255 / 0.06)) 0 50px / 40% 10px no-repeat;
 }
 
 /* ------------------------------------------------------------------ */
-/* Dias e horários (giz = livre, tinta = escolhido)                    */
+/* Dias e horários: contorno = livre, dourado = escolhido.             */
+/* A forma inclinada fica no ::before, o texto continua reto.          */
+
+.dia::before,
+.horario::before,
+.placa-botao::before,
+.botao-giz::before {
+  content: '';
+  position: absolute;
+  inset: 0 5px;
+  z-index: -1;
+  transform: skewX(var(--inclinacao));
+  border: 1.5px solid var(--contorno);
+  border-radius: 3px;
+  transition: background-color 0.18s var(--ease-saida), border-color 0.18s var(--ease-saida), filter 0.18s var(--ease-saida);
+}
 
 .dias {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   margin: 16px calc(var(--gutter) * -1) 0;
   padding: 4px var(--gutter) 14px;
   overflow-x: auto;
@@ -423,140 +458,157 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
   align-self: center;
   writing-mode: vertical-rl;
   rotate: 180deg;
-  margin: 0 2px;
-  font: 400 1.35rem/1 var(--font-cursiva);
-  color: var(--canario);
-  text-shadow: var(--sombra-curta);
+  margin: 0 4px;
+  color: var(--ouro);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-stretch: 115%;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
 }
 
 .dia {
   appearance: none;
   position: relative;
-  flex: 0 0 66px;
+  isolation: isolate;
+  flex: 0 0 74px;
   display: grid;
   justify-items: center;
   gap: 1px;
   padding: 9px 4px 8px;
   border: 0;
-  border-radius: 4px 6px 5px 3px;
-  background: var(--giz-caixa) center / 100% 100% no-repeat;
-  color: var(--giz);
+  background: none;
+  color: var(--prata-2);
   font: inherit;
   cursor: pointer;
   scroll-snap-align: start;
-  transition: background-color 0.18s var(--ease-saida), color 0.18s var(--ease-saida);
   -webkit-tap-highlight-color: transparent;
 }
 
 .dia__sem {
-  font: 700 0.75rem/1.2 var(--font-texto);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  font-stretch: 112%;
+  line-height: 1.3;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .dia__num {
-  font: 900 1.9rem/1 var(--font-pincel);
-  color: var(--cal);
+  font-style: italic;
+  font-weight: 800;
+  font-stretch: 110%;
+  font-size: 1.75rem;
+  line-height: 1;
+  color: var(--prata);
 }
 
 .dia__vagas {
-  font: 500 0.6875rem/1.2 var(--font-texto);
-  color: var(--cal-suave);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--prata-3);
   white-space: nowrap;
 }
 
-.dia:hover:not(:disabled) { background-color: rgb(243 245 241 / 0.08); }
-
-.dia[aria-pressed='true'] {
-  background: var(--cal);
-  color: var(--muro);
+.dia:hover:not(:disabled)::before {
+  border-color: var(--contorno-forte);
+  background-color: rgb(255 255 255 / 0.04);
 }
-.dia[aria-pressed='true'] .dia__num { color: var(--muro); }
-.dia[aria-pressed='true'] .dia__vagas { color: var(--tinta-suave); }
+
+.dia[aria-pressed='true']::before {
+  border-color: transparent;
+  background: var(--ouro-placa);
+}
+.dia[aria-pressed='true'],
+.dia[aria-pressed='true'] .dia__num { color: var(--tinta); }
+.dia[aria-pressed='true'] .dia__vagas { color: var(--bronze-escuro); }
 
 .dia:disabled {
   cursor: not-allowed;
-  background: var(--giz-risco) center / 70% 70% no-repeat;
-  color: rgb(243 245 241 / 0.55);
+  color: var(--prata-3);
 }
-.dia:disabled .dia__num { color: rgb(243 245 241 / 0.55); }
-.dia:disabled .dia__vagas { color: rgb(243 245 241 / 0.6); }
+.dia:disabled::before { border-style: dashed; border-color: rgb(230 226 216 / 0.2); }
+.dia:disabled .dia__num {
+  color: var(--prata-3);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
 
 .dias--carregando .dia {
   pointer-events: none;
-  background: linear-gradient(var(--giz-guia), var(--giz-guia));
   color: transparent;
 }
+.dias--carregando .dia::before { border-color: transparent; background: rgb(255 255 255 / 0.05); }
+.dias--carregando .dia .dia__num { color: transparent; }
 
 .horarios { min-height: 48px; }
 
 .horarios__grupo + .horarios__grupo { margin-top: 6px; }
 
-.horarios__titulo {
-  margin: 14px 0 8px;
-  font: 400 1.6rem/1.1 var(--font-cursiva);
-  color: var(--canario);
-  text-shadow: var(--sombra-curta);
-}
+.horarios__titulo { margin: 18px 0 10px; }
 
 .horarios__lista {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 8px 4px;
 }
 
 .horario {
   appearance: none;
+  position: relative;
+  isolation: isolate;
   width: 100%;
   min-height: 52px;
   display: grid;
   place-content: center;
-  padding: 6px 4px;
+  padding: 6px 8px;
   border: 0;
-  border-radius: 3px 5px 4px 6px;
-  background: var(--giz-caixa) center / 100% 100% no-repeat;
-  color: var(--cal);
-  font: 700 1.125rem/1.1 var(--font-texto);
+  background: none;
+  color: var(--prata);
+  font: inherit;
+  font-style: italic;
+  font-weight: 700;
+  font-stretch: 108%;
+  font-size: 1.125rem;
+  line-height: 1.1;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
-  transition: background-color 0.18s var(--ease-saida), color 0.18s var(--ease-saida);
   -webkit-tap-highlight-color: transparent;
 }
 
 .horario small {
   display: block;
   margin-top: 2px;
-  font: 600 0.6875rem/1.2 var(--font-texto);
-  color: var(--canario);
+  font-style: normal;
+  font-weight: 600;
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  color: var(--ouro);
 }
 
-.horario:hover { background-color: rgb(243 245 241 / 0.08); }
-
-.horario[aria-pressed='true'] {
-  background: var(--cal);
-  color: var(--muro);
-  font-weight: 800;
-  animation: tinta-solida 0.32s var(--ease-saida);
+.horario:hover::before {
+  border-color: var(--contorno-forte);
+  background-color: rgb(255 255 255 / 0.04);
 }
-.horario[aria-pressed='true'] small { color: var(--tinta-suave); }
 
-@keyframes tinta-solida {
-  from { clip-path: inset(0 100% 0 0 round 4px); }
-  to { clip-path: inset(0 0 0 0 round 4px); }
+.horario[aria-pressed='true'] { color: var(--tinta); font-weight: 800; }
+.horario[aria-pressed='true']::before {
+  border-color: transparent;
+  background: var(--ouro-placa);
 }
+.horario[aria-pressed='true'] small { color: var(--bronze-escuro); }
 
 .vazio-giz {
   margin: 16px 0 0;
-  padding: 14px 16px;
-  background: var(--giz-caixa) center / 100% 100% no-repeat;
-  color: var(--giz);
-  font-weight: 600;
+  color: var(--prata-2);
+  font-weight: 500;
 }
 
-.vazio-giz a { color: var(--cal); font-weight: 700; }
+.vazio-giz a { color: var(--ouro); font-weight: 700; }
 
 /* ------------------------------------------------------------------ */
 /* Ficha                                                               */
@@ -578,13 +630,15 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
 }
 
 .campo label {
-  font: 700 0.9375rem/1.3 var(--font-texto);
-  color: var(--cal);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  line-height: 1.3;
+  color: var(--prata);
 }
 
 .opcional {
-  font-weight: 500;
-  color: var(--cal-suave);
+  font-weight: 400;
+  color: var(--prata-3);
 }
 
 .campo input,
@@ -592,12 +646,15 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
   width: 100%;
   min-height: 52px;
   padding: 12px 14px;
-  border: 2px solid transparent;
+  border: 1.5px solid var(--campo-borda);
   border-radius: 4px;
-  background: var(--cal);
-  color: var(--tinta);
-  font: 500 1.0625rem/1.35 var(--font-texto);
-  caret-color: var(--zarcao);
+  background: var(--preto-2);
+  color: var(--prata);
+  font: inherit;
+  font-size: 1.0625rem;
+  font-weight: 500;
+  line-height: 1.35;
+  caret-color: var(--ouro);
   transition: border-color 0.15s var(--ease-saida);
 }
 
@@ -607,19 +664,23 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
 }
 
 .campo input::placeholder,
-.campo textarea::placeholder { color: #5d647a; opacity: 1; }
+.campo textarea::placeholder { color: var(--prata-3); opacity: 1; }
+
+.campo input:hover,
+.campo textarea:hover { border-color: #8d8576; }
 
 .campo input:focus-visible,
 .campo textarea:focus-visible {
-  outline: 3px solid var(--canario);
-  outline-offset: 2px;
+  border-color: var(--ouro);
+  outline: 2px solid rgb(243 179 44 / 0.35);
+  outline-offset: 1px;
 }
 
-.campo[data-erro] input { border-color: var(--zarcao); }
+.campo[data-erro] input { border-color: var(--erro); }
 
 .campo__dica {
   margin: 0;
-  color: var(--cal-suave);
+  color: var(--prata-3);
   font-size: 0.8125rem;
 }
 
@@ -629,57 +690,64 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
   gap: 8px;
   align-items: baseline;
   margin: 0;
-  color: var(--canario);
-  font: 700 0.9375rem/1.35 var(--font-texto);
-}
-
-.ficha__erro {
-  padding: 12px 14px;
-  background: var(--giz-caixa) center / 100% 100% no-repeat;
+  color: var(--erro);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  line-height: 1.35;
 }
 
 .ficha__erro:focus { outline: none; }
 
-/* Placa Mercosul */
+/* Placa Mercosul (é uma placa de verdade: branca, faixa azul) */
 .placa {
   overflow: hidden;
   border-radius: 6px;
-  background: var(--cal);
-  box-shadow: inset 0 0 0 2px var(--tinta);
+  background: #f4f4f2;
+  box-shadow: inset 0 0 0 2px #121212;
 }
 
 .placa__faixa {
   display: block;
   padding: 3px 0 2px;
   background: #1c3e9c;
-  color: var(--cal);
-  font: 800 0.625rem/1.2 var(--font-texto);
+  color: #f4f4f2;
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1.2;
   letter-spacing: 0.32em;
   text-align: center;
-  border-bottom: 2px solid var(--tinta);
+  border-bottom: 2px solid #121212;
 }
 
 .campo .placa input {
   min-height: 46px;
+  border: 0;
   border-radius: 0;
   background: transparent;
+  color: #121212;
+  caret-color: #121212;
   text-align: center;
   text-transform: uppercase;
-  font: 700 1.375rem/1 var(--font-texto);
-  font-stretch: 80%;
+  font-size: 1.375rem;
+  font-weight: 700;
+  font-stretch: 85%;
+  line-height: 1;
   letter-spacing: 0.08em;
 }
 
 .campo .placa input::placeholder {
   letter-spacing: 0.08em;
   font-weight: 500;
-  color: #666d82;
+  color: #6a6a6a;
 }
 
+.campo .placa input:focus-visible { outline: none; }
+.placa:focus-within { outline: 2px solid var(--ouro-claro); outline-offset: 3px; }
+
 .resumo {
-  padding: 14px 16px 15px;
-  background: var(--giz-caixa) center / 100% 100% no-repeat;
-  color: var(--giz);
+  padding: 14px 0 0;
+  border-top: 1px solid var(--linha-quieta);
+  color: var(--prata-2);
 }
 
 .resumo:empty { display: none; }
@@ -687,68 +755,71 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
 .resumo p { margin: 0; }
 
 .resumo__servico {
-  font: 900 1.375rem/1.1 var(--font-pincel);
+  color: var(--ouro);
+  font-style: italic;
+  font-weight: 800;
+  font-stretch: 112%;
+  font-size: 1.25rem;
+  line-height: 1.15;
   text-transform: uppercase;
-  color: var(--cal);
 }
 
 .resumo__quando {
   margin-top: 4px !important;
-  color: var(--cal);
+  color: var(--prata);
   font-weight: 700;
 }
 
-/* Botão principal: placa amarela pintada */
+/* Botão principal: placa dourada inclinada */
 .placa-botao {
   appearance: none;
+  position: relative;
+  isolation: isolate;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   width: 100%;
   min-height: 60px;
-  padding: 12px 18px 13px;
+  padding: 12px 22px 13px;
   border: 0;
-  border-radius: 6px 4px 7px 5px / 5px 7px 4px 6px;
-  background: var(--canario);
+  background: none;
   color: var(--tinta);
-  font: 900 1.5rem/1 var(--font-pincel);
+  font: inherit;
+  font-style: italic;
+  font-weight: 800;
+  font-stretch: 115%;
+  font-size: 1.1875rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   text-decoration: none;
-  letter-spacing: 0.01em;
   cursor: pointer;
-  box-shadow: 0 2px 0 rgb(0 0 0 / 0.3), 0 8px 16px -8px rgb(0 0 0 / 0.5);
-  transition: background-color 0.15s var(--ease-saida), transform 0.15s var(--ease-saida);
+  transition: transform 0.15s var(--ease-saida);
   -webkit-tap-highlight-color: transparent;
 }
 
-.placa-botao:hover { background: var(--canario-escuro); }
+.placa-botao::before {
+  inset: 0 6px;
+  border: 0;
+  background: var(--ouro-placa);
+  box-shadow: 0 2px 0 #000, 0 12px 22px -12px rgb(0 0 0 / 0.9);
+}
+
+.placa-botao:hover::before { filter: brightness(1.07); }
 .placa-botao:active { transform: translateY(1px); }
-.placa-botao:disabled { cursor: progress; background: var(--canario-escuro); }
+.placa-botao:disabled { cursor: progress; }
+.placa-botao:disabled::before { filter: saturate(0.7); }
 
-.placa-botao--cal {
-  background: var(--cal);
-  color: var(--muro);
-}
-.placa-botao--cal:hover { background: #ffffff; }
-
-.ficha__nota {
-  margin: -4px 0 0;
-  color: var(--cal-suave);
-  font-size: 0.875rem;
-  text-align: center;
-}
-
-/* Pincel correndo dentro do botão enquanto agenda */
-.placa-botao { position: relative; overflow: hidden; }
+.placa-botao--cal::before { background: var(--prata-placa); }
 
 .placa-botao[aria-busy='true']::after {
   content: '';
   position: absolute;
-  left: 18px;
-  right: 18px;
+  left: 28px;
+  right: 28px;
   bottom: 10px;
-  height: 4px;
+  height: 3px;
   border-radius: 2px;
   background: var(--tinta);
   transform-origin: left center;
@@ -761,94 +832,108 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
   to { transform: scaleX(1); opacity: 0; }
 }
 
+.ficha__nota {
+  margin: -4px 0 0;
+  color: var(--prata-3);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
 .botao-giz {
+  position: relative;
+  isolation: isolate;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   min-height: 52px;
-  padding: 10px 16px;
+  padding: 10px 18px;
   border: 0;
-  background: var(--giz-caixa) center / 100% 100% no-repeat;
-  color: var(--cal);
-  font: 700 1rem/1.2 var(--font-texto);
+  background: none;
+  color: var(--prata);
+  font: inherit;
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.2;
   text-decoration: none;
   cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.15s var(--ease-saida);
 }
 
-.botao-giz:hover { background-color: rgb(243 245 241 / 0.08); }
+.botao-giz .icone { color: var(--ouro); }
+.botao-giz:hover::before { border-color: var(--contorno-forte); background-color: rgb(255 255 255 / 0.04); }
 
 .link-giz {
   appearance: none;
   border: 0;
   background: none;
   padding: 8px 0;
-  color: var(--cal);
-  font: 700 1rem/1.3 var(--font-texto);
+  color: var(--ouro);
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.3;
   text-decoration: underline;
-  text-decoration-style: dashed;
   text-underline-offset: 0.3em;
   cursor: pointer;
 }
 
 /* ------------------------------------------------------------------ */
-/* Agendamento pintado no muro                                         */
+/* Agendamento confirmado: a data em ouro, com o brilho do polimento   */
 
 .pintado {
-  padding: 8px 0 40px;
+  padding: 22px 0 40px;
 }
 
 .pintado:focus { outline: none; }
 
-.pintado__cursiva {
-  margin: 0;
-  font: 400 clamp(2.2rem, 10vw, 3rem)/1 var(--font-cursiva);
-  color: var(--canario);
-  text-shadow: var(--sombra-curta);
-  rotate: -5deg;
-  width: fit-content;
-}
-
 .pintado__dia {
-  margin: 10px 0 0;
-  font-family: var(--font-pincel);
+  margin: 14px 0 0;
+  font-style: italic;
   font-weight: 900;
-  font-size: clamp(3.4rem, 17vw, 6rem);
-  line-height: 0.94;
+  font-stretch: 120%;
+  font-size: clamp(2.9rem, 14vw, 5rem);
+  line-height: 0.98;
   text-transform: uppercase;
-  color: var(--cal);
 }
 
 .pintado__hora {
   display: block;
-  margin: 2px 0 0;
-  font: 900 clamp(2.6rem, 13vw, 4.5rem)/1 var(--font-pincel);
-  color: var(--canario);
+  margin: 4px 0 0;
+  font-weight: 800;
+  font-stretch: 110%;
+  font-size: clamp(2.3rem, 11vw, 3.75rem);
+  line-height: 1;
 }
 
-.tinta {
+.tinta { display: inline-block; }
+
+.pintado__check {
   display: inline-block;
-  text-shadow: var(--sombra-pintada);
+  width: 0.62em;
+  height: 0.62em;
+  margin-right: -0.12em;
+  vertical-align: 0.02em;
+  color: var(--ouro);
+  filter: drop-shadow(0 0.04em 0 #000);
 }
+
+.sem-quebra { white-space: nowrap; }
 
 .pintado__ficha {
   margin: 26px 0 0;
   display: grid;
-  gap: 0;
 }
 
 .pintado__ficha > div {
+  position: relative;
   display: grid;
   grid-template-columns: 6.5rem 1fr;
   gap: 12px;
-  position: relative;
-  padding: 10px 0 11px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--linha-quieta);
 }
 
 .pintado__ficha dt {
-  color: var(--cal-suave);
+  color: var(--prata-3);
   font-size: 0.875rem;
   padding-top: 2px;
 }
@@ -860,9 +945,13 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
 }
 
 .pintado__codigo {
-  font: 900 1.375rem/1 var(--font-pincel);
-  letter-spacing: 0.12em;
-  color: var(--canario);
+  color: var(--ouro);
+  font-style: italic;
+  font-weight: 800;
+  font-stretch: 115%;
+  font-size: 1.25rem;
+  line-height: 1;
+  letter-spacing: 0.14em;
 }
 
 .pintado__acoes {
@@ -874,7 +963,7 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
 .pintado__acoes .duas {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 6px;
 }
 
 .pintado__mais {
@@ -883,7 +972,7 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
   justify-content: space-between;
   gap: 8px 16px;
   margin-top: 18px;
-  color: var(--cal-suave);
+  color: var(--prata-2);
   font-size: 0.875rem;
 }
 
@@ -900,16 +989,26 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
     animation: check-pincel 0.45s var(--ease-saida) 0.05s forwards;
   }
 
-  .pintado .tinta {
-    clip-path: inset(-0.2em 100% -0.3em -0.1em);
-    text-shadow: none;
-    animation:
-      pincelada 0.62s var(--ease-saida) forwards,
-      sombra-assenta 0.3s var(--ease-saida) forwards;
-    animation-delay: calc(var(--i, 0) * 210ms + 120ms), calc(var(--i, 0) * 210ms + 700ms);
+  .horario[aria-pressed='true']::before,
+  .dia[aria-pressed='true']::before {
+    animation: preenche 0.3s var(--ease-saida);
   }
 
-  .pintado__cursiva,
+  /* O brilho do polimento passa sobre a data dourada, palavra por palavra. */
+  .pintado .tinta {
+    background-image: var(--brilho), var(--ouro-metal);
+    background-size: 260% 100%, 100% 100%;
+    background-position: 170% 0, 0 0;
+    background-repeat: no-repeat;
+    clip-path: inset(-0.2em 100% -0.3em -0.1em);
+    animation:
+      revela 0.55s var(--ease-saida) forwards,
+      brilho 1.2s var(--ease-saida) forwards;
+    animation-delay: calc(var(--i, 0) * 190ms + 120ms), calc(var(--i, 0) * 190ms + 520ms);
+  }
+
+  .pintado .pintado__hora.tinta { background-image: var(--brilho), var(--prata-metal); }
+
   .pintado__ficha,
   .pintado .giz-nota,
   .pintado__acoes,
@@ -924,21 +1023,18 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
   to { opacity: 1; translate: 0 0; }
 }
 
-@keyframes check-pincel {
-  to { stroke-dashoffset: 0; }
-}
+@keyframes check-pincel { to { stroke-dashoffset: 0; } }
 
-@keyframes pincelada {
-  to { clip-path: inset(-0.2em -0.3em -0.3em -0.1em); }
-}
-
-@keyframes sombra-assenta {
-  to { text-shadow: var(--sombra-pintada); }
-}
-
-@keyframes aparece {
+@keyframes preenche {
+  from { opacity: 0.2; }
   to { opacity: 1; }
 }
+
+@keyframes revela { to { clip-path: inset(-0.2em -0.3em -0.3em -0.1em); } }
+
+@keyframes brilho { to { background-position: -70% 0, 0 0; } }
+
+@keyframes aparece { to { opacity: 1; } }
 
 /* ------------------------------------------------------------------ */
 /* Rodapé                                                              */
@@ -946,7 +1042,7 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
 .rodape {
   position: relative;
   padding: 22px 0 36px;
-  color: var(--cal-suave);
+  color: var(--prata-2);
   font-size: 0.875rem;
 }
 
@@ -956,7 +1052,7 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 20px;
+  gap: 4px 22px;
 }
 
 .rodape__links a {
@@ -964,15 +1060,17 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
   align-items: center;
   gap: 8px;
   min-height: 44px;
-  color: var(--cal);
+  color: var(--prata);
   font-weight: 600;
   text-decoration: none;
+  overflow-wrap: anywhere;
 }
 
+.rodape__links .icone { color: var(--ouro); }
 .rodape__links a:hover { text-decoration: underline; }
 
 /* ------------------------------------------------------------------ */
-/* Telas largas: o letreiro à esquerda, a tabela e a agenda à direita   */
+/* Telas largas: a logo e o horário à esquerda, a tabela à direita     */
 
 @media (min-width: 1000px) {
   .muro {
@@ -989,51 +1087,16 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
     align-self: start;
     position: sticky;
     top: 0;
-    padding-top: 88px;
+    padding-top: 64px;
   }
 
-  .letreiro__nome { --tam: clamp(4.5rem, 7.4vw, 6rem); }
-
-  /* Quadro de horário pintado, como na parede da oficina */
-  .letreiro__horario {
-    display: grid;
-    gap: 2px;
-    list-style: none;
-    margin: 40px 0 0;
-    padding: 18px 0 0;
-    position: relative;
-  }
-
-  .letreiro__horario::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    height: 3px;
-    background: var(--giz-linha) 0 0 / 120px 3px repeat-x;
-  }
-
-  .letreiro__horario li {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    max-width: 22rem;
-    font-family: var(--font-pincel);
-    font-weight: 900;
-    font-size: 1.75rem;
-    line-height: 1.2;
-    text-transform: uppercase;
-    text-shadow: var(--sombra-curta);
-  }
-
-  .letreiro__horario li span:last-child { color: var(--canario); }
+  .letreiro__logo img { max-width: 440px; }
 
   .agendar,
   .pintado {
     grid-column: 2;
     grid-row: 1;
-    padding-top: 72px;
+    padding-top: 64px;
   }
 
   .etapa:first-child { padding-top: 0; }
@@ -1043,9 +1106,9 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
 
   .ficha__dupla { grid-template-columns: 1fr 12rem; }
 
-  .servico__nome { font-size: 2rem; max-width: 16ch; }
-  .servico__preco { font-size: 2.1rem; }
-  .servico__meta { font-size: 0.9375rem; }
+  .servico__nome { font-size: 1.75rem; max-width: 18ch; }
+  .servico__preco { font-size: 1.9rem; }
+  .servico__meta { font-size: 0.875rem; }
 
   .dias {
     flex-wrap: wrap;
@@ -1058,8 +1121,42 @@ a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px
     writing-mode: horizontal-tb;
     rotate: none;
     flex-basis: 100%;
-    margin: 6px 0 0;
+    margin: 6px 0 2px;
   }
 
-  .aviso-exemplo { margin-bottom: -40px; }
+  /* Quadro de horário em letreiro: dias em prata, horas em ouro */
+  .letreiro__horario {
+    position: relative;
+    display: grid;
+    gap: 4px;
+    list-style: none;
+    margin: 36px 0 0;
+    padding: 20px 0 0;
+    max-width: 440px;
+  }
+
+  .letreiro__horario::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 1px;
+    background: var(--filete);
+    opacity: 0.7;
+  }
+
+  .letreiro__horario li {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    font-style: italic;
+    font-weight: 800;
+    font-stretch: 115%;
+    font-size: 1.375rem;
+    line-height: 1.25;
+    text-transform: uppercase;
+  }
+
+  .letreiro__horario li span:last-child { color: var(--ouro); }
 }

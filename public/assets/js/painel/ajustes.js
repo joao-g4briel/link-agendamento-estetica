@@ -69,11 +69,11 @@ export default async function ajustes(root, { params }) {
         <h2 class="secao__titulo" id="t-estetica">A estética</h2>
         <div class="form__linha form__linha--2">
           <div class="campo"><label for="a-nome">Nome</label><input id="a-nome" name="name" value="${settings.name}" maxlength="40" required></div>
-          <div class="campo"><label for="a-frase">Frase em letra cursiva</label><input id="a-frase" name="tagline" value="${settings.tagline}" maxlength="40" placeholder="estética automotiva"></div>
+          <div class="campo"><label for="a-frase">Descrição da logo</label><input id="a-frase" name="tagline" value="${settings.tagline}" maxlength="40" placeholder="Estética Automotiva"><p class="campo__dica">Lida por leitores de tela junto com o nome. A frase da logo já está na imagem.</p></div>
         </div>
         <div class="campo"><label for="a-end">Endereço</label><input id="a-end" name="address" value="${settings.address}" maxlength="120" placeholder="Rua, número · bairro"></div>
         <div class="form__linha form__linha--2">
-          <div class="campo"><label for="a-whats">WhatsApp da estética</label><input id="a-whats" name="whatsapp" type="tel" inputmode="numeric" value="${formatPhone(settings.whatsapp)}" placeholder="(11) 91234-5678"></div>
+          <div class="campo"><label for="a-whats">WhatsApp da estética</label><input id="a-whats" name="whatsapp" type="tel" inputmode="numeric" value="${formatPhone(settings.whatsapp)}" placeholder="(81) 91234-5678"></div>
           <div class="campo"><label for="a-insta">Instagram</label><div class="prefixo"><span>@</span><input id="a-insta" name="instagram" value="${settings.instagram}" maxlength="30" autocapitalize="off" spellcheck="false"></div></div>
         </div>
         <div class="form__acoes" style="padding:0"><button class="btn btn--primario" type="submit">${icon('check')}Salvar</button></div>

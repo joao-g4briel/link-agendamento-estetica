@@ -45,7 +45,7 @@ function renderTabs(route) {
 async function updateChrome() {
   const [returns, { settings }] = await Promise.all([api.listReturns(), api.getSettings()]);
   badge = returns.late.length + returns.today.length;
-  $('#marca').textContent = settings.name;
+  $('#marca img').alt = `${settings.name} — início do painel`;
   renderTabs(parseHash().route);
 }
 

@@ -140,7 +140,7 @@ export default async function inicio(root) {
     <div class="faixa">
       <div class="faixa__topo">
         <h1 class="faixa__titulo">${WEEKDAYS[new Date().getDay()]} ${formatDateShort(t)}</h1>
-        <span class="faixa__marca" id="inicio-marca"></span>
+        <span class="faixa__marca"><img src="${new URL('../../img/logo-700.webp', import.meta.url).href}" width="136" height="34" alt="" id="inicio-marca"></span>
       </div>
       <form class="busca" role="search" id="busca-form">
         <span class="busca__faixa" aria-hidden="true">BRASIL</span>
@@ -171,10 +171,10 @@ export default async function inicio(root) {
   async function loadHome() {
     const [data, { settings }] = await Promise.all([api.getHome(), api.getSettings()]);
     const baseUrl = api.publicBaseUrl();
-    $('#inicio-marca', root).textContent = settings.name;
+    $('#inicio-marca', root).alt = settings.name;
     $('#quadro', root).innerHTML = String(board(data));
     $('#exemplo', root).innerHTML = data.exampleData
-      ? String(html`<p class="faixa__exemplo">Clientes, carros e telefones de exemplo. <a href="#/ajustes?secao=dados">Começar do zero</a></p>`)
+      ? String(html`<p class="faixa__exemplo">${icon('info')}<span>Clientes, carros e telefones de exemplo. <a href="#/ajustes?secao=dados">Começar do zero</a></span></p>`)
       : '';
     home.innerHTML = String(sections(data, settings, baseUrl));
   }

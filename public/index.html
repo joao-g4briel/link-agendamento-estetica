@@ -3,12 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Agende seu horário</title>
-  <meta name="description" content="Escolha o serviço, veja os horários livres e agende sem precisar chamar no WhatsApp.">
-  <meta name="theme-color" content="#1f3a9e">
+  <title>Mão de Ouro · Agende seu horário</title>
+  <meta name="description" content="Mão de Ouro Estética Automotiva, em Igarassu. Escolha o serviço, veja os horários livres e agende sem precisar chamar no WhatsApp.">
+  <meta name="theme-color" content="#0b0a08">
+  <meta property="og:title" content="Mão de Ouro · Estética Automotiva">
+  <meta property="og:description" content="Escolha o serviço e agende seu horário em poucos toques.">
+  <meta property="og:image" content="assets/img/compartilhar.jpg">
   <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
-  <link rel="preload" href="assets/fonts/londrina-solid-900.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="assets/fonts/archivo-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/saira-italic-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/saira-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/img/logo-700.webp" as="image" imagesrcset="assets/img/logo-700.webp 700w, assets/img/logo-1400.webp 1400w" imagesizes="(min-width: 1000px) 440px, calc(100vw - 32px)">
   <link rel="stylesheet" href="assets/css/fonts.css">
   <link rel="stylesheet" href="assets/css/muro.css">
   <script type="module" src="assets/js/booking.js"></script>
@@ -24,12 +28,13 @@
     </symbol>
   </svg>
 
-  <p class="aviso-exemplo" id="aviso-exemplo" hidden>Demonstração: nome, serviços e preços são exemplos.</p>
+  <p class="aviso-exemplo" id="aviso-exemplo" hidden>Demonstração: serviços e preços são exemplos.</p>
 
   <div class="muro">
     <header class="letreiro" id="letreiro" aria-busy="true">
-      <h1 class="letreiro__nome" id="nome-estetica"><span class="vazio">Carregando</span></h1>
-      <p class="letreiro__cursiva" id="tagline"></p>
+      <h1 class="letreiro__logo">
+        <img id="logo" src="assets/img/logo-700.webp" srcset="assets/img/logo-700.webp 700w, assets/img/logo-1400.webp 1400w" sizes="(min-width: 1000px) 440px, calc(100vw - 32px)" width="700" height="175" alt="Mão de Ouro — Estética Automotiva">
+      </h1>
       <ul class="letreiro__info" id="info" role="list"></ul>
       <p class="giz-nota" id="nota-giz" hidden></p>
       <ul class="letreiro__horario" id="horario" role="list" aria-label="Horário de funcionamento"></ul>
@@ -72,7 +77,7 @@
           </div>
           <div class="campo">
             <label for="f-whats">WhatsApp</label>
-            <input id="f-whats" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="(11) 91234-5678" required>
+            <input id="f-whats" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="(81) 91234-5678" required>
             <p class="campo__dica">É por ele que a estética confirma e avisa quando for hora de voltar.</p>
             <p class="campo__erro" id="e-phone" hidden></p>
           </div>

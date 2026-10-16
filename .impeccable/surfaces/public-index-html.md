@@ -9,22 +9,22 @@ related_targets: []
 
 Scope: the public booking page opened from the Instagram bio, plus its return-link variant (`?retorno=<token>`). Visitor mode: Persuade.
 
-Audience: car owner on a phone, inside Instagram's in-app browser. Job: pick a service, see a slot that is really free, book it without messaging anyone. Action: the service table and the open slots themselves, in working form, in the first viewport. Proof: real services with time and price (example data until the owner edits them); no testimonials, ratings or client counts exist and none may be invented. Constraints: pt-BR, R$, one business, placeholder data layer, WhatsApp-only contact.
+Audience: car owner on a phone, inside Instagram's in-app browser. Job: pick a service, see a slot that is really free, book it without messaging anyone. Action: the service table and the open slots themselves, in working form, near the first viewport. Proof: real services with time and price (example data until the owner edits them); no testimonials, ratings or client counts exist and none may be invented. Constraints: pt-BR, R$, one business (Mão de Ouro, Igarassu-PE), placeholder data layer, WhatsApp-only contact.
 
-Memorable moment: confirming paints the appointment onto the wall, brush stroke by stroke, with the shadow landing last, and the card says when the car should come back.
+Memorable moment: confirming gilds the appointment: the date appears in gold and a polishing shine sweeps across it, and the card says when the car should come back.
 
-Unresolved: real business name, logo and photos; online deposit; real backend.
+Unresolved: real services and prices; photos of finished work; online deposit; real backend.
 
 ## Direction contract
 
-THESIS: The page is the shop's own hand-painted wall: the service table in brush letters with price and time, free slots sketched in chalk, the chosen slot painted solid over the chalk. It refuses the category default of a black "premium detailing" page with a glossy car photo and a generic calendar widget.
+THESIS: The page is the shop's own gilded sign on black lacquer: the service table set like a sign board with gold prices, open slots drawn as silver outlines, the chosen slot filled in gold. It refuses the category default of a dark "premium detailing" page built around a glossy stock car photo and a generic calendar widget.
 
-OWN-WORLD: Saturated cobalt wall paint over plaster as the ground; lime-white brush lettering with a block shadow in near-black and a zarcão red-lead edge; canary yellow for prices and the primary action; chalk-white dashed strokes for anything still undecided. Londrina Solid for painted letters, Yellowtail for the brush-script line, Archivo for everything read at small size. Every line of lettering sits on the painter's chalk guide rows.
+OWN-WORLD: Brand pinned by the owner (PRODUCT.md): the Mão de Ouro logo, black, metallic gold and silver, and a wide heavy oblique sans. Translation of the rolled "Muro de letreiro" world into those materials, named: cobalt plaster wall → warm black lacquer with a soft overhead sheen; lime-white brush lettering → gold-leaf lettering with the logo's chrome horizon (metallic gradient, dark drop shade) on display lines only; chalk → silver hairline outlines; paint → solid gold. Kept from the roll: the sign-board service table with dotted leaders, outline = open / solid = chosen, the brush check per finished step, the one-gesture confirm, the gilded confirmation ritual, guide hairlines flanking labels (the logo's own gold rules). Saira throughout: italic expanded black for display, tracked silver caps for labels, regular for text. Chips and buttons lean like the logo's italics.
 
-STORY: The visitor recognizes the wall of a real shop, reads what is done there and for how much, sees which times are open today, picks one, leaves a name, WhatsApp and car, and watches the booking get painted on. They leave knowing the date, the place, and when the car should come back.
+STORY: The visitor recognizes the logo they saw on Instagram, reads what is done there and for how much, sees which times are open, picks one, leaves a name, WhatsApp and car, and watches the booking turn gold. They leave knowing the date, the place, and when the car should come back.
 
-FIRST VIEWPORT: Phone, 390 wide. Top third: the shop name painted large with shadow, the script line "estética automotiva" and the address in small print. Directly below, the service table: each row a painted line with service name, duration in small caps and price in yellow, the whole row tappable. The next free slot shows as a chalk note beside the first rows so the action is visible before scrolling.
+FIRST VIEWPORT: Phone, 390 wide. Top: the Mão de Ouro logo at full column width, then address (Igarassu) and today's hours in silver. Directly below, the service table: each row a sign line with service name in silver italic caps, dotted gold leader, price in gold, duration and cycle in small caps; the whole row tappable. "Próximo livre" sits beside the table heading with a hand-drawn arrow.
 
-FORM: Grounded candidate 3 of 7 (hand-painted car-wash and garage lettering by sign painters), seed key db644ca5. Raises kept: chalk versus paint selection (sewing pattern), fixed guide-row grid (teletext), size carries hierarchy (Massin), one-gesture confirm (ebru), brush check per finished step (coffeehouse), return link arrives pre-painted (sleeping city).
+FORM: Grounded candidate 3 of 7 (hand-painted car-wash and garage lettering by sign painters), seed key db644ca5, materials translated to the owner's pinned brand (gilded sign on black). Raises kept: outline versus fill selection (sewing pattern), guide rules (teletext), size carries hierarchy (Massin), one-gesture confirm (ebru), brush check per finished step (coffeehouse), return link arrives pre-filled (sleeping city).
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance

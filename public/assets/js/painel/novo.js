@@ -69,7 +69,7 @@ export default async function novo(root, { params }) {
         <legend>Cliente e carro</legend>
         <div class="form__linha form__linha--2">
           <div class="campo"><label for="n-nome">Nome</label><input id="n-nome" name="name" value="${preset.name}" autocomplete="off" autocapitalize="words"></div>
-          <div class="campo"><label for="n-whats">WhatsApp</label><input id="n-whats" name="phone" type="tel" inputmode="numeric" value="${formatPhone(preset.phone)}" placeholder="(11) 91234-5678"></div>
+          <div class="campo"><label for="n-whats">WhatsApp</label><input id="n-whats" name="phone" type="tel" inputmode="numeric" value="${formatPhone(preset.phone)}" placeholder="(81) 91234-5678"></div>
           <div class="campo"><label for="n-carro">Carro</label><input id="n-carro" name="vehicle" value="${preset.vehicle}" placeholder="Modelo e cor"></div>
           <div class="campo"><label for="n-placa">Placa <span class="campo__dica">(opcional)</span></label><input id="n-placa" name="plate" value="${preset.plate}" autocapitalize="characters" spellcheck="false" maxlength="8" placeholder="ABC1D23"></div>
         </div>

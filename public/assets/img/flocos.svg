@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
+  <!-- Flocos de pintura metálica sobre preto: grão fino dourado, gerado por filtro. -->
+  <filter id="flocos" x="0" y="0">
+    <feTurbulence type="fractalNoise" baseFrequency="1.15" numOctaves="2" seed="11" stitchTiles="stitch"/>
+    <feColorMatrix values="0 0 0 0 0.95  0 0 0 0 0.72  0 0 0 0 0.25  0 0 0 2.4 -1.62"/>
+  </filter>
+  <rect width="300" height="300" filter="url(#flocos)" opacity="0.5"/>
+</svg>
