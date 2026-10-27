@@ -13,6 +13,10 @@ export const SETTINGS = {
   whatsapp: '81996750258',
   instagram: 'hc.esteticar',
   capacity: 2,
+  // Carros por dia no link (0 = sem limite). O dono ajusta em Ajustes.
+  maxCarsPerDay: 4,
+  // false fecha o link para novos agendamentos; o painel continua agendando.
+  bookingOpen: true,
   slotStep: 30,
   minNoticeMinutes: 120,
   horizonDays: 30,

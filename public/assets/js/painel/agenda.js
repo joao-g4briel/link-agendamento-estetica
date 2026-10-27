@@ -13,7 +13,7 @@ function weekLabel(from) {
     : `${a.getDate()} de ${MONTHS[a.getMonth()]} a ${b.getDate()} de ${MONTHS[b.getMonth()]}`;
 }
 
-function dayBlock(day, settings) {
+function dayBlock(day, settings, limit) {
   const isToday = day.date === today();
   const past = day.date < today();
   const active = day.items.filter((a) => a.status !== 'cancelado');
@@ -28,7 +28,8 @@ function dayBlock(day, settings) {
         <h2 class="secao__titulo" id="d-${day.date}">${capitalize(formatDateLong(day.date))} ${isToday ? html`<span class="selo selo--hoje">hoje</span>` : ''}</h2>
         ${day.hours && !day.block ? html`
           <span class="carga" title="${Math.round(day.load.ratio * 100)}% das vagas ocupadas">
-            <span class="carga__texto">${active.length} ${active.length === 1 ? 'carro' : 'carros'} · ${hourLabel(day.hours.open)}–${hourLabel(day.hours.close)}</span>
+            <span class="carga__texto">${limit ? `${active.length} de ${limit} carros` : `${active.length} ${active.length === 1 ? 'carro' : 'carros'}`} · ${hourLabel(day.hours.open)}–${hourLabel(day.hours.close)}</span>
+            ${day.load.full && !past ? html`<span class="selo selo--hoje">lotado</span>` : ''}
             <span class="carga__barra" aria-hidden="true"><span style="width:${Math.round(day.load.ratio * 100)}%"></span></span>
           </span>` : ''}
       </div>
@@ -61,7 +62,7 @@ export default async function agenda(root, { params }) {
 
   async function load() {
     const [data, { settings }] = await Promise.all([api.getAgenda(from, 7), api.getSettings()]);
-    list.innerHTML = String(html`${data.days.map((d) => dayBlock(d, settings))}`);
+    list.innerHTML = String(html`${data.days.map((d) => dayBlock(d, settings, data.maxCarsPerDay))}`);
   }
 
   await load();

@@ -1,6 +1,6 @@
 # HC Estética Automotiva — link de agendamento
 
-Link para a bio do Instagram da **HC Estética Automotiva** (Rua Irajá, 236 · Cidade Tabajara, Olinda-PE · WhatsApp (81) 99675-0258 · @hc.esteticar): o cliente escolhe o serviço, vê só os horários que estão livres e o agendamento cai direto na agenda. Quando o serviço é concluído, o sistema marca quando aquele carro deve voltar (renovar a vitrificação, nova higienização) e, no dia, coloca o cliente na fila de retornos do painel com a mensagem de WhatsApp pronta.
+Link para a bio do Instagram da **HC Estética Automotiva** (Rua Irajá, 236 · Cidade Tabajara, Olinda-PE · WhatsApp (81) 99675-0258 · @hc.esteticar): o cliente escolhe o serviço e o dia (sem escolher horário: traz o carro a partir da abertura) e o agendamento cai direto na agenda. Quando o serviço é concluído, o sistema marca quando aquele carro deve voltar (renovar a vitrificação, nova higienização) e, no dia, coloca o cliente na fila de retornos do painel com a mensagem de WhatsApp pronta.
 
 ## Rodar no computador
 
@@ -23,7 +23,7 @@ Precisa do Node 22 ou mais novo.
 
 **Link público** (`public/index.html`)
 - Tabela de serviços com tempo, preço e de quanto em quanto tempo refazer.
-- Dias e horários livres calculados de verdade: vagas simultâneas, duração do serviço, pausa do almoço, folgas e antecedência mínima.
+- Agendamento por dia: o cliente vê só os dias com vaga (com quantas vagas restam) e traz o carro a partir da abertura. O dia lota no limite de carros por dia; dias fechados, folgas e a antecedência mínima também contam.
 - Ficha curta (nome, WhatsApp, carro, placa) e confirmação com "salvar na agenda", "como chegar" e a data do próximo retorno.
 - Link de retorno (`/?retorno=<código>`): abre com o serviço já escolhido e os dados do cliente preenchidos.
 
@@ -32,7 +32,9 @@ Precisa do Node 22 ou mais novo.
 - **Agenda:** semana a semana, com concluir, "não veio", cancelar e voltar atrás.
 - **Retornos:** atrasados, de hoje e dos próximos 30 dias, cada um com o botão de WhatsApp que abre a mensagem pronta. Avisados, quem voltou e quem fica para mais adiante.
 - **Serviços:** nome, descrição, duração, preço, ciclo de retorno e o texto "Tá na hora de…" da mensagem.
-- **Ajustes:** dados da estética, horário de funcionamento, vagas, intervalo entre horários, antecedência, folgas, texto da mensagem de retorno e o endereço do link.
+- **Ajustes:** agenda online aberta ou fechada, dados da estética, horário de funcionamento, vagas, limite de carros por dia, intervalo entre horários, antecedência, folgas, texto da mensagem de retorno e o endereço do link.
+- **Fechar a agenda:** em Ajustes ou no Início. Com a agenda fechada, o link mostra os serviços e preços, mas não aceita agendamento e pede para chamar no WhatsApp; pelo painel o dono continua agendando.
+- **Limite de carros por dia:** quando o dia chega no limite, ele aparece lotado no link. Pelo painel ainda dá para encaixar.
 
 ### Como o retorno funciona
 

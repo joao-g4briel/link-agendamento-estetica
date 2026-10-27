@@ -8,6 +8,7 @@
 //   o carro fica no box).
 // - Cada horário aceita até `capacity` carros ao mesmo tempo (vagas/boxes).
 // - Folgas bloqueiam o dia inteiro.
+// - Com `maxCarsPerDay`, o dia lota quando chega a esse número de carros.
 // - Respeita a antecedência mínima a partir de agora.
 
 import { addDays, diffDays, fromMinutes, nowMinutes, toMinutes, today, weekday } from './dates.js';
@@ -67,6 +68,8 @@ export function daySlots({ settings, appointments, blocks, date, duration, now, 
   const step = settings.slotStep || 30;
   const capacity = Math.max(1, settings.capacity || 1);
   const intervals = occupiedIntervals(appointments, date, ignoreId);
+  const limit = settings.maxCarsPerDay || 0;
+  if (limit && intervals.length >= limit) return { date, closed: false, reason: 'lotado', slots: [] };
 
   const slots = [];
   for (let t = open; t + duration <= close; t += step) {
@@ -82,6 +85,47 @@ export function daySlots({ settings, appointments, blocks, date, duration, now, 
     reason: slots.length ? null : tooLong ? 'não cabe no dia' : 'lotado',
     slots,
   };
+}
+
+/**
+ * Agendamento por dia (link público): o cliente escolhe só o dia e traz o
+ * carro a partir da abertura. O dia lota quando chega em `maxCarsPerDay`
+ * (0 = sem limite). Hoje só vale se ainda der para chegar com a antecedência
+ * mínima antes de fechar.
+ * Devolve o mesmo formato de daySlots: um único "horário", o da abertura.
+ */
+export function dayOpening({ settings, appointments, blocks, date, now, ignoreId }) {
+  const ref = now || { date: today(), minutes: nowMinutes() };
+  const hours = hoursFor(settings, date);
+  if (!hours) return { date, closed: true, reason: 'fechado', slots: [] };
+  const block = blockFor(blocks, date);
+  if (block) return { date, closed: true, reason: block.reason || 'folga', slots: [] };
+
+  const offset = diffDays(ref.date, date);
+  if (offset < 0) return { date, closed: true, reason: 'passou', slots: [] };
+  if (offset === 0 && ref.minutes + (settings.minNoticeMinutes || 0) >= toMinutes(hours.close)) {
+    return { date, closed: true, reason: 'encerrado', slots: [] };
+  }
+
+  const cars = occupiedIntervals(appointments, date, ignoreId).length;
+  const limit = settings.maxCarsPerDay || 0;
+  if (limit && cars >= limit) return { date, closed: false, reason: 'lotado', slots: [] };
+  return { date, closed: false, reason: null, slots: [{ time: hours.open, free: limit ? limit - cars : null }] };
+}
+
+export function rangeDays({ from, days, ...rest }) {
+  return Array.from({ length: days }, (_, i) => dayOpening({ ...rest, date: addDays(from, i) }));
+}
+
+/** Primeiro dia com vaga a partir de hoje, dentro do horizonte de agendamento. */
+export function firstFreeDay({ settings, horizon, ...rest }) {
+  const limit = horizon || settings.horizonDays || 30;
+  const start = (rest.now && rest.now.date) || today();
+  for (let i = 0; i < limit; i++) {
+    const day = dayOpening({ settings, ...rest, date: addDays(start, i) });
+    if (day.slots.length) return { date: day.date, time: day.slots[0].time };
+  }
+  return null;
 }
 
 export function rangeSlots({ from, days, ...rest }) {
@@ -102,7 +146,7 @@ export function firstFree({ settings, horizon, ...rest }) {
 /** Ocupação de um dia em minutos-vaga, para o painel. */
 export function dayLoad({ settings, appointments, blocks, date }) {
   const hours = hoursFor(settings, date);
-  if (!hours || blockFor(blocks, date)) return { open: false, ratio: 0, cars: 0 };
+  if (!hours || blockFor(blocks, date)) return { open: false, ratio: 0, cars: 0, full: false };
   const open = toMinutes(hours.open);
   const close = toMinutes(hours.close);
   const capacityMinutes = (close - open) * Math.max(1, settings.capacity || 1);
@@ -111,5 +155,6 @@ export function dayLoad({ settings, appointments, blocks, date }) {
     const s = toMinutes(a.start);
     return sum + Math.max(0, Math.min(close, s + a.durationMin) - Math.max(open, s));
   }, 0);
-  return { open: true, ratio: Math.min(1, used / capacityMinutes), cars: items.length };
+  const limit = settings.maxCarsPerDay || 0;
+  return { open: true, ratio: Math.min(1, used / capacityMinutes), cars: items.length, full: Boolean(limit) && items.length >= limit };
 }

@@ -106,7 +106,7 @@ export default async function novo(root, { params }) {
     slotsBox.innerHTML = String(html`<p class="campo__dica">Procurando horários…</p>`);
     const day = await api.getSlotsForPanel(form.serviceId.value, state.date);
     if (!day.slots.length) {
-      const why = { fechado: 'A estética está fechada nesse dia.', passou: 'Esse dia já passou.', lotado: 'Sem horário livre nesse dia.', 'não cabe no dia': 'O serviço não cabe no horário desse dia.' }[day.reason] || `Folga: ${day.reason}.`;
+      const why = { fechado: 'A estética está fechada nesse dia.', passou: 'Esse dia já passou.', lotado: 'Dia lotado: sem vaga ou já no limite de carros.', 'não cabe no dia': 'O serviço não cabe no horário desse dia.' }[day.reason] || `Folga: ${day.reason}.`;
       slotsBox.innerHTML = String(html`<p class="campo__dica">${why} Escolha outro dia ou use o encaixe.</p>`);
       return;
     }

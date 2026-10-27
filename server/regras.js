@@ -3,7 +3,7 @@
 // quem chama (server/app.mjs) carrega do Postgres, roda a regra dentro de uma
 // transação e grava o que mudou.
 
-import { blockFor, dayLoad, daySlots, firstFree, hoursFor, rangeSlots } from '../public/assets/js/core/availability.js';
+import { blockFor, dayLoad, dayOpening, daySlots, firstFreeDay, hoursFor, rangeDays } from '../public/assets/js/core/availability.js';
 import { addDays, addInterval, diffDays, nowMinutes, parseInterval, toMinutes, today } from '../public/assets/js/core/dates.js';
 import { formatPlate, isValidPhone, normalizePhone } from '../public/assets/js/core/format.js';
 
@@ -39,6 +39,9 @@ function findService(db, id) {
   return service;
 }
 
+/** A agenda online fecha pelo painel; o painel continua agendando. */
+const isBookingOpen = (settings) => settings.bookingOpen !== false;
+
 function baseContext(db) {
   return {
     settings: db.settings,
@@ -55,10 +58,11 @@ function baseContext(db) {
 export function getPublicProfile(db) {
   const services = activeServices(db);
   const shortest = services.reduce((min, s) => (!min || s.durationMin < min.durationMin ? s : min), null);
-  const next = shortest ? firstFree({ ...baseContext(db), duration: shortest.durationMin }) : null;
+  const bookingOpen = isBookingOpen(db.settings);
+  const next = shortest && bookingOpen ? firstFreeDay(baseContext(db)) : null;
   const { name, tagline, address, whatsapp, instagram, hours, horizonDays, capacity, isExample } = db.settings;
   return clone({
-    shop: { name, tagline, address, whatsapp, instagram, hours, horizonDays, capacity, isExample },
+    shop: { name, tagline, address, whatsapp, instagram, hours, horizonDays, capacity, isExample, bookingOpen },
     services,
     nextFree: next,
   });
@@ -67,11 +71,12 @@ export function getPublicProfile(db) {
 export function getAvailability(db, serviceId, from, days) {
   const service = findService(db, serviceId);
   const horizon = db.settings.horizonDays || 30;
-  return rangeSlots({
+  if (!isBookingOpen(db.settings) || !service.active) return [];
+  // O link agenda por dia: sem escolha de horário.
+  return rangeDays({
     ...baseContext(db),
     from: ISO_DATE.test(from || '') ? from : today(),
     days: Math.min(Number(days) || horizon, horizon),
-    duration: service.durationMin,
   });
 }
 
@@ -127,13 +132,18 @@ export function createBooking(db, input, { source = 'link', force = false } = {}
   const service = findService(db, input.serviceId);
   if (!force) {
     if (!service.active) throw new ApiError('NOT_FOUND', 'Esse serviço não está mais disponível.', 404);
+    if (!isBookingOpen(db.settings)) {
+      throw new ApiError('CLOSED', 'A agenda online está fechada no momento. Chame a estética no WhatsApp para marcar.', 409);
+    }
     const horizon = db.settings.horizonDays || 30;
     const day = input.date <= addDays(today(), horizon)
-      ? daySlots({ ...baseContext(db), date: input.date, duration: service.durationMin })
+      ? dayOpening({ ...baseContext(db), date: input.date })
       : { slots: [] };
-    if (!day.slots.some((s) => s.time === input.start)) {
-      throw new ApiError('SLOT_TAKEN', 'Esse horário acabou de ser ocupado. Escolha outro, por favor.', 409);
+    if (!day.slots.length) {
+      throw new ApiError('SLOT_TAKEN', 'Esse dia acabou de lotar. Escolha outro, por favor.', 409);
     }
+    // Pelo link o carro chega a partir da abertura: o horário gravado é o dela.
+    input = { ...input, start: day.slots[0].time };
   }
   const customer = upsertCustomer(db, text(input.name, 80), input.phone);
   const appointment = {
@@ -270,6 +280,8 @@ export function getHome(db) {
     hours: hoursFor(db.settings, t),
     block: blockFor(db.blocks, t),
     capacity: db.settings.capacity,
+    maxCarsPerDay: db.settings.maxCarsPerDay || 0,
+    bookingOpen: isBookingOpen(db.settings),
     today: todays,
     upcoming,
     returnsDue,
@@ -342,7 +354,7 @@ export function getAgenda(db, from, days = 7) {
         .map((a) => expandAppointment(db, a)),
     };
   });
-  return clone({ capacity: db.settings.capacity, days: list });
+  return clone({ capacity: db.settings.capacity, maxCarsPerDay: db.settings.maxCarsPerDay || 0, days: list });
 }
 
 const STATUSES = new Set(['agendado', 'concluido', 'faltou', 'cancelado']);
@@ -470,7 +482,7 @@ export function getSettings(db) {
 
 const SETTINGS_KEYS = [
   'name', 'tagline', 'address', 'whatsapp', 'instagram', 'capacity', 'slotStep', 'minNoticeMinutes',
-  'horizonDays', 'autoComplete', 'hours', 'returnTemplate', 'publicUrl',
+  'horizonDays', 'autoComplete', 'hours', 'returnTemplate', 'publicUrl', 'maxCarsPerDay', 'bookingOpen',
 ];
 
 export function saveSettings(db, patch) {
@@ -481,6 +493,8 @@ export function saveSettings(db, patch) {
   if ('whatsapp' in clean && clean.whatsapp && !isValidPhone(clean.whatsapp)) {
     throw invalid('Confira as configurações.', { whatsapp: 'WhatsApp com DDD, 10 ou 11 dígitos.' });
   }
+  if ('maxCarsPerDay' in clean) clean.maxCarsPerDay = Math.min(50, Math.max(0, Math.round(Number(clean.maxCarsPerDay) || 0)));
+  if ('bookingOpen' in clean) clean.bookingOpen = clean.bookingOpen !== false;
   Object.assign(db.settings, clean, { isExample: false });
   if (clean.whatsapp) db.settings.whatsapp = normalizePhone(clean.whatsapp);
   return clone(db.settings);

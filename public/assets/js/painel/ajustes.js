@@ -1,5 +1,5 @@
-// Ajustes: dados da estética, funcionamento, regras da agenda, folgas,
-// mensagem de retorno, link público e dados de exemplo.
+// Ajustes: agenda online aberta/fechada, dados da estética, funcionamento,
+// regras da agenda, folgas, mensagem de retorno, link público e dados de exemplo.
 
 import * as api from '../data/api.js';
 import { today } from '../core/dates.js';
@@ -54,6 +54,14 @@ function blocksList(blocks) {
     </li>`)}</ul>`;
 }
 
+function onlineState(open) {
+  return open
+    ? html`<p class="campo__dica"><strong>Aberta.</strong> Os clientes agendam pelo link.</p>
+      <div class="form__acoes" style="padding:0"><button class="btn btn--linha" type="button" data-online="fechar">${icon('ban')}Fechar agenda</button></div>`
+    : html`<p class="campo__dica"><strong>Fechada.</strong> O link mostra os serviços, mas não aceita agendamento e pede para chamar no WhatsApp. Pelo painel você continua agendando.</p>
+      <div class="form__acoes" style="padding:0"><button class="btn btn--primario" type="button" data-online="abrir">${icon('check')}Reabrir agenda</button></div>`;
+}
+
 export default async function ajustes(root, { params }) {
   const { settings, blocks } = await api.getSettings();
   const publicUrl = api.publicBaseUrl();
@@ -65,6 +73,11 @@ export default async function ajustes(root, { params }) {
     </div>
 
     <div class="form">
+      <section class="form__grupo" id="agenda-online" aria-labelledby="t-online">
+        <h2 class="secao__titulo" id="t-online">Agenda online</h2>
+        <div id="online-estado">${onlineState(settings.bookingOpen !== false)}</div>
+      </section>
+
       <form class="form__grupo" id="f-estetica" novalidate aria-labelledby="t-estetica">
         <h2 class="secao__titulo" id="t-estetica">A estética</h2>
         <div class="form__linha form__linha--2">
@@ -93,6 +106,11 @@ export default async function ajustes(root, { params }) {
             <label for="a-vagas">Carros ao mesmo tempo</label>
             <input id="a-vagas" name="capacity" type="number" inputmode="numeric" min="1" max="12" value="${settings.capacity}">
             <p class="campo__dica">Quantas vagas ou boxes você atende juntos.</p>
+          </div>
+          <div class="campo">
+            <label for="a-limite">Limite de carros por dia</label>
+            <input id="a-limite" name="maxCarsPerDay" type="number" inputmode="numeric" min="0" max="50" value="${settings.maxCarsPerDay || 0}">
+            <p class="campo__dica">0 = sem limite. Ao chegar no limite, o dia aparece lotado no link. Pelo painel você ainda pode encaixar.</p>
           </div>
           <div class="campo">
             <label for="a-passo">Horários a cada</label>
@@ -166,6 +184,23 @@ export default async function ajustes(root, { params }) {
     </div>
   `);
 
+  // Agenda online
+  const onlineBox = $('#online-estado', root);
+  onlineBox.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-online]');
+    if (!button) return;
+    const open = button.dataset.online === 'abrir';
+    button.disabled = true;
+    try {
+      await api.saveSettings({ bookingOpen: open });
+      onlineBox.innerHTML = String(onlineState(open));
+      toast(open ? 'Agenda reaberta. O link voltou a aceitar agendamentos.' : 'Agenda fechada. O link não aceita novos agendamentos.');
+    } catch (error) {
+      button.disabled = false;
+      toast(error.message);
+    }
+  });
+
   // A estética
   $('#f-estetica', root).addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -220,14 +255,17 @@ export default async function ajustes(root, { params }) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const capacity = Math.min(12, Math.max(1, Number(data.get('capacity')) || 1));
+    const maxCarsPerDay = Math.min(50, Math.max(0, Math.round(Number(data.get('maxCarsPerDay')) || 0)));
     await api.saveSettings({
       capacity,
+      maxCarsPerDay,
       slotStep: Number(data.get('slotStep')),
       minNoticeMinutes: Number(data.get('minNoticeMinutes')),
       horizonDays: Number(data.get('horizonDays')),
       autoComplete: data.get('autoComplete') === 'on',
     });
     event.currentTarget.querySelector('[name="capacity"]').value = capacity;
+    event.currentTarget.querySelector('[name="maxCarsPerDay"]').value = maxCarsPerDay;
     toast('Regras da agenda salvas.');
   });
 

@@ -6,7 +6,7 @@ import { formatDateShort, formatDateShortYear, formatPhone, formatRelativeDay, W
 import { waLink } from '../core/whatsapp.js';
 import {
   $, appointmentRow, bindAppointmentActions, bindReturnActions, hourLabel, html, icon,
-  placa, returnRow,
+  placa, returnRow, toast,
 } from './ui.js';
 
 function lanes(items, capacity) {
@@ -46,7 +46,8 @@ function board(home) {
   if (marks[0] !== open) marks.unshift(open);
   if (marks[marks.length - 1] !== close) marks.push(close);
   const cars = home.today.filter((a) => a.status !== 'cancelado' && a.status !== 'faltou').length;
-  const label = `Hoje, ${cars} ${cars === 1 ? 'carro' : 'carros'} em ${home.capacity} ${home.capacity === 1 ? 'vaga' : 'vagas'}, ${Math.round(home.load.ratio * 100)}% do dia ocupado.`;
+  const limit = home.maxCarsPerDay;
+  const label = `Hoje, ${cars} ${cars === 1 ? 'carro' : 'carros'}${limit ? ` de ${limit}` : ''} em ${home.capacity} ${home.capacity === 1 ? 'vaga' : 'vagas'}, ${Math.round(home.load.ratio * 100)}% do dia ocupado.`;
   const pause = home.hours.breakStart && home.hours.breakEnd
     ? { left: pct(toMinutes(home.hours.breakStart)), width: `calc(${pct(toMinutes(home.hours.breakEnd))} - ${pct(toMinutes(home.hours.breakStart))})` }
     : null;
@@ -54,7 +55,7 @@ function board(home) {
   return html`
     <div class="quadro">
       <p class="quadro__legenda">
-        <span><strong>${cars} ${cars === 1 ? 'carro' : 'carros'}</strong> · ${Math.round(home.load.ratio * 100)}% das vagas ocupadas</span>
+        <span><strong>${limit ? `${cars} de ${limit} carros` : `${cars} ${cars === 1 ? 'carro' : 'carros'}`}</strong>${home.load.full ? ' · dia lotado' : ` · ${Math.round(home.load.ratio * 100)}% das vagas ocupadas`}</span>
         <span>${hourLabel(home.hours.open)} às ${hourLabel(home.hours.close)}</span>
       </p>
       <div class="quadro__pista" role="img" aria-label="${label}">
@@ -150,10 +151,12 @@ export default async function inicio(root) {
         <span class="busca__limpar" hidden id="busca-limpar"><button type="button" class="btn btn--texto btn--icone" aria-label="Limpar busca">${icon('x')}</button></span>
       </form>
       <div id="exemplo"></div>
+      <div id="online"></div>
       <div id="quadro"></div>
       <div class="faixa__acoes">
         <a class="btn btn--cal btn--pequeno" href="#/novo">${icon('plus')}Novo agendamento</a>
         <a class="btn btn--giz btn--pequeno" href="#/ajustes?secao=folgas">${icon('calendar-off')}Marcar folga</a>
+        <button class="btn btn--giz btn--pequeno" type="button" id="fechar-agenda" data-online="fechar" hidden>${icon('ban')}Fechar agenda</button>
       </div>
     </div>
     <div id="resultados" aria-live="polite"></div>
@@ -176,8 +179,29 @@ export default async function inicio(root) {
     $('#exemplo', root).innerHTML = data.shop.isExample
       ? String(html`<p class="faixa__exemplo">${icon('info')}<span>Serviços e preços ainda são de exemplo e aparecem assim no link. <a href="#/servicos">Ajustar serviços</a></span></p>`)
       : '';
+    $('#online', root).innerHTML = data.bookingOpen
+      ? ''
+      : String(html`<p class="faixa__exemplo faixa__fechada">${icon('ban')}<span><strong>Agenda online fechada.</strong> O link não aceita novos agendamentos. <button type="button" class="link-faixa" data-online="abrir">Reabrir agenda</button></span></p>`);
+    $('#fechar-agenda', root).hidden = !data.bookingOpen;
     home.innerHTML = String(sections(data, settings, baseUrl));
   }
+
+  // Fechar/reabrir a agenda online (o botão e o aviso ficam na faixa, que nasce a cada visita).
+  $('.faixa', root).addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-online]');
+    if (!button) return;
+    const open = button.dataset.online === 'abrir';
+    if (!open && !window.confirm('Fechar a agenda online? O link para de aceitar agendamentos até você reabrir.')) return;
+    button.disabled = true;
+    try {
+      await api.saveSettings({ bookingOpen: open });
+      toast(open ? 'Agenda reaberta. O link voltou a aceitar agendamentos.' : 'Agenda fechada. Reabra aqui ou em Ajustes.');
+      await loadHome();
+    } catch (error) {
+      button.disabled = false;
+      toast(error.message);
+    }
+  });
 
   async function runSearch() {
     const q = input.value.trim();

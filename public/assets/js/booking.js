@@ -1,7 +1,8 @@
-// Link público de agendamento: serviço → dia → horário → dados → pintado no muro.
+// Link público de agendamento: serviço → dia → dados → pintado no muro.
+// O cliente escolhe só o dia; o carro chega a partir da abertura.
 
 import * as api from './data/api.js';
-import { fromMinutes, nowMinutes, parseISODate, toMinutes, today } from './core/dates.js';
+import { addDays, nowMinutes, parseISODate, toMinutes, today } from './core/dates.js';
 import {
   firstName, formatDateLong, formatDateShort, formatDuration, formatInterval, formatMonthYear,
   formatPhone, formatPlate, formatPrice, formatRelativeDay, html, isValidPhone, MONTHS, raw,
@@ -100,7 +101,7 @@ function renderHeader() {
 
   const free = $('#nota-livre');
   if (nextFree && !(invite && !invite.alreadyBooked)) {
-    free.innerHTML = html`<span>Próximo livre<strong>${formatRelativeDay(nextFree.date)}, ${nextFree.time}</strong></span><svg class="giz-seta" aria-hidden="true"><use href="#giz-seta"/></svg>`;
+    free.innerHTML = html`<span>Próximo dia livre<strong>${formatRelativeDay(nextFree.date)}</strong></span><svg class="giz-seta" aria-hidden="true"><use href="#giz-seta"/></svg>`;
     free.hidden = false;
   } else {
     free.hidden = true;
@@ -129,7 +130,13 @@ function hoursBoard(hours) {
 function renderServices() {
   const list = $('#tabela');
   const { services, shop } = state.profile;
+  const closed = shop.bookingOpen === false;
   list.removeAttribute('aria-busy');
+  if (closed) {
+    $('#ajuda-servico').innerHTML = html`A agenda online está fechada no momento.
+      ${shop.whatsapp ? html`<a href="${waLink(shop.whatsapp, 'Oi! Queria agendar um horário.')}" target="_blank" rel="noopener">Chame no WhatsApp</a> para marcar.` : ''}`;
+    $('#ajuda-servico').classList.add('etapa__ajuda--fechada');
+  }
   if (!services.length) {
     list.innerHTML = html`<li class="vazio-giz">A tabela de serviços ainda está sendo pintada.
       ${shop.whatsapp ? html`<a href="${waLink(shop.whatsapp, 'Oi! Queria agendar um horário.')}" target="_blank" rel="noopener">Chame no WhatsApp</a> para agendar.` : ''}</li>`;
@@ -137,7 +144,7 @@ function renderServices() {
   }
   list.innerHTML = services.map((s) => html`
     <li>
-      <button type="button" class="servico" data-id="${s.id}" aria-pressed="false">
+      <button type="button" class="servico" data-id="${s.id}" aria-pressed="false" ${closed ? html`disabled` : ''}>
         <span class="servico__nome">${s.name}</span>
         <span class="servico__pontos" aria-hidden="true"></span>
         <span class="servico__preco">${s.priceFrom ? html`<small>a partir de</small>` : ''}${formatPrice(s.priceCents)}</span>
@@ -199,7 +206,7 @@ async function selectService(id, { scroll = true } = {}) {
   $('#etapa-dados').hidden = true;
 
   $('#ajuda-quando').textContent =
-    `${service.name} leva ${formatDuration(service.durationMin)}. O horário é o de chegada do carro.`;
+    `${service.name} leva ${formatDuration(service.durationMin)}. Escolha o dia e traga o carro a partir da abertura.`;
   $('#dias').classList.add('dias--carregando');
   $('#dias').setAttribute('aria-busy', 'true');
   $('#dias').innerHTML = Array.from({ length: 7 }, () =>
@@ -212,27 +219,28 @@ async function selectService(id, { scroll = true } = {}) {
     const days = await api.getAvailability(id);
     if (request !== availabilityRequest) return;
     state.days = days;
-    const first = days.find((d) => d.slots.length);
-    state.date = first ? first.date : null;
+    state.date = null;
     renderDays();
-    renderSlots();
+    renderDayNote();
   } catch {
     if (request !== availabilityRequest) return;
     $('#dias').classList.remove('dias--carregando');
     $('#dias').innerHTML = '';
-    $('#horarios').innerHTML = html`<p class="vazio-giz">Não deu para ver os horários agora.
+    $('#horarios').innerHTML = html`<p class="vazio-giz">Não deu para ver os dias livres agora.
       <button type="button" class="link-giz" data-acao="recarregar">Tentar de novo</button></p>`;
   }
 }
 
 function dayTag(day) {
   if (day.slots.length) {
-    const n = day.slots.length;
-    return { short: `${n} ${n === 1 ? 'horário' : 'horários'}`, long: `${n} ${n === 1 ? 'horário livre' : 'horários livres'}` };
+    const { free, time } = day.slots[0];
+    if (free === 1) return { short: 'última vaga', long: `última vaga, chegada a partir das ${hourLabel(time)}` };
+    if (free) return { short: `${free} vagas`, long: `${free} vagas, chegada a partir das ${hourLabel(time)}` };
+    return { short: 'livre', long: `livre, chegada a partir das ${hourLabel(time)}` };
   }
   if (day.reason === 'fechado') return { short: 'fechado', long: 'fechado' };
-  if (day.reason === 'lotado') return { short: 'lotado', long: 'sem horário livre' };
-  if (day.reason === 'não cabe no dia') return { short: 'não cabe', long: 'o serviço não cabe nesse dia' };
+  if (day.reason === 'lotado') return { short: 'lotado', long: 'sem vaga' };
+  if (day.reason === 'encerrado') return { short: 'encerrado', long: 'não dá mais para hoje' };
   return { short: 'folga', long: day.reason || 'folga' };
 }
 
@@ -244,7 +252,7 @@ function renderDays() {
   if (!state.days.some((d) => d.slots.length)) {
     const { shop } = state.profile;
     container.innerHTML = '';
-    $('#horarios').innerHTML = html`<p class="vazio-giz">Sem horário livre para ${state.service.name.toLowerCase()} nos próximos ${state.days.length} dias.
+    $('#horarios').innerHTML = html`<p class="vazio-giz">Sem dia livre para ${state.service.name.toLowerCase()} nos próximos ${state.days.length} dias.
       ${shop.whatsapp ? html`<a href="${waLink(shop.whatsapp, `Oi! Queria um encaixe para ${state.service.name.toLowerCase()}.`)}" target="_blank" rel="noopener">Peça um encaixe no WhatsApp</a>.` : ''}</p>`;
     return;
   }
@@ -273,64 +281,35 @@ function renderDays() {
   if (selected) selected.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 
-function renderSlots(message = '') {
-  const day = state.days.find((d) => d.date === state.date);
-  const box = $('#horarios');
-  if (!day) {
-    box.innerHTML = message ? html`<p class="vazio-giz" role="alert">${message}</p>` : '';
-    return;
-  }
-  const capacity = state.profile.shop.capacity || 1;
-  const groups = [
-    ['manhã', day.slots.filter((s) => s.time < '12:00')],
-    ['tarde', day.slots.filter((s) => s.time >= '12:00')],
-  ].filter(([, slots]) => slots.length);
-
-  box.innerHTML = html`
+/** Embaixo dos dias: o aviso de erro (dia que lotou) ou a hora de chegada do dia escolhido. */
+function renderDayNote(message = '') {
+  const day = state.days.find((d) => d.date === state.date && d.slots.length);
+  $('#horarios').innerHTML = html`
     ${message ? html`<p class="vazio-giz" role="alert">${message}</p>` : ''}
-    <p class="visualmente-oculto">Horários livres na ${formatDateLong(day.date)}</p>
-    ${groups.map(([label, slots]) => html`
-      <div class="horarios__grupo">
-        <h3 class="horarios__titulo">${label}</h3>
-        <ul class="horarios__lista" role="list">
-          ${slots.map((slot) => html`
-            <li><button type="button" class="horario" data-time="${slot.time}" aria-pressed="${String(slot.time === state.time)}">
-              ${slot.time}${capacity > 1 && slot.free === 1 ? html`<small>última vaga</small>` : ''}
-            </button></li>`)}
-        </ul>
-      </div>`)}
+    ${day ? html`<p class="giz-nota">${icon('clock')}<span>Traga o carro na ${formatDateLong(day.date)}, <strong>a partir das ${hourLabel(day.slots[0].time)}</strong>.</span></p>` : ''}
   `;
 }
 
 function selectDay(date) {
-  if (state.date === date) return;
+  const day = state.days.find((d) => d.date === date);
+  if (!day || !day.slots.length) return;
   state.date = date;
-  state.time = null;
-  $('#etapa-quando').classList.remove('feita');
-  $('#etapa-dados').hidden = true;
+  state.time = day.slots[0].time;
   document.querySelectorAll('.dia').forEach((button) => {
     button.setAttribute('aria-pressed', String(button.dataset.date === date));
   });
-  renderSlots();
-}
-
-function selectTime(time) {
-  state.time = time;
-  document.querySelectorAll('.horario').forEach((button) => {
-    button.setAttribute('aria-pressed', String(button.dataset.time === time));
-  });
   $('#etapa-quando').classList.add('feita');
+  renderDayNote();
   renderSummary();
   revealStep('#etapa-dados');
 }
 
 function renderSummary() {
   const s = state.service;
-  const end = fromMinutes(toMinutes(state.time) + s.durationMin);
   $('#resumo').innerHTML = html`
     <p class="resumo__servico">${s.name}</p>
-    <p class="resumo__quando">${capitalize(formatDateLong(state.date))}, às ${state.time}</p>
-    <p>Carro pronto por volta das ${end} · ${s.priceFrom ? 'a partir de ' : ''}${formatPrice(s.priceCents)}, pago na estética</p>
+    <p class="resumo__quando">${capitalize(formatDateLong(state.date))}</p>
+    <p>Chegada a partir das ${hourLabel(state.time)} · leva ${formatDuration(s.durationMin)} · ${s.priceFrom ? 'a partir de ' : ''}${formatPrice(s.priceCents)}, pago na estética</p>
   `;
 }
 
@@ -445,14 +424,18 @@ async function submit(event) {
       $('#etapa-quando').classList.remove('feita');
       const days = await api.getAvailability(state.service.id).catch(() => state.days);
       state.days = days;
-      if (!days.find((d) => d.date === state.date)?.slots.length) {
-        state.date = days.find((d) => d.slots.length)?.date || null;
-      }
+      // O dia lotou: o cliente escolhe outro.
+      if (!days.find((d) => d.date === state.date)?.slots.length) state.date = null;
       renderDays();
-      renderSlots(error.message);
+      renderDayNote(error.message);
       $('#etapa-quando').scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth', block: 'start' });
     } else if (error.fields) {
       showErrors(error.fields);
+    } else if (error.code === 'CLOSED') {
+      const box = $('#ficha-erro');
+      box.innerHTML = html`${icon('circle-alert')}<span>${error.message}</span>`;
+      box.hidden = false;
+      box.focus();
     } else {
       const box = $('#ficha-erro');
       box.innerHTML = html`${icon('circle-alert')}<span>Não deu para confirmar agora. Seus dados continuam aqui; tente de novo em instantes.</span>`;
@@ -470,36 +453,33 @@ async function submit(event) {
 // ---------------------------------------------------------------------------
 // Pintado no muro
 
-function calendarStamp(date, time) {
-  return `${date.replace(/-/g, '')}T${time.replace(':', '')}00`;
-}
+// Evento de dia inteiro: o agendamento é por dia, com chegada a partir da abertura.
+const calendarDay = (date) => date.replace(/-/g, '');
 
 function googleCalendarUrl({ appointment, service, shop }) {
-  const end = fromMinutes(toMinutes(appointment.start) + appointment.durationMin);
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: `${service.name} · ${shop.name}`,
-    dates: `${calendarStamp(appointment.date, appointment.start)}/${calendarStamp(appointment.date, end)}`,
+    dates: `${calendarDay(appointment.date)}/${calendarDay(addDays(appointment.date, 1))}`,
     ctz: 'America/Sao_Paulo',
     location: shop.address || '',
-    details: `Carro: ${appointment.vehicle}${appointment.plate ? ` (${appointment.plate})` : ''}. Código: ${appointment.code}.`,
+    details: `Traga o carro a partir das ${hourLabel(appointment.start)}. Carro: ${appointment.vehicle}${appointment.plate ? ` (${appointment.plate})` : ''}. Código: ${appointment.code}.`,
   });
   return `https://calendar.google.com/calendar/render?${params}`;
 }
 
 function icsFile({ appointment, service, shop }) {
-  const end = fromMinutes(toMinutes(appointment.start) + appointment.durationMin);
   const escape = (text) => String(text).replace(/[\\,;]/g, (c) => `\\${c}`).replace(/\n/g, '\\n');
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
   const body = [
     'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Link de agendamento//PT-BR', 'BEGIN:VEVENT',
     `UID:${appointment.id}@agendamento`,
     `DTSTAMP:${stamp}`,
-    `DTSTART:${calendarStamp(appointment.date, appointment.start)}`,
-    `DTEND:${calendarStamp(appointment.date, end)}`,
+    `DTSTART;VALUE=DATE:${calendarDay(appointment.date)}`,
+    `DTEND;VALUE=DATE:${calendarDay(addDays(appointment.date, 1))}`,
     `SUMMARY:${escape(`${service.name} · ${shop.name}`)}`,
     `LOCATION:${escape(shop.address || '')}`,
-    `DESCRIPTION:${escape(`Carro: ${appointment.vehicle}. Código: ${appointment.code}.`)}`,
+    `DESCRIPTION:${escape(`Traga o carro a partir das ${hourLabel(appointment.start)}. Carro: ${appointment.vehicle}. Código: ${appointment.code}.`)}`,
     'END:VEVENT', 'END:VCALENDAR',
   ].join('\r\n');
   return URL.createObjectURL(new Blob([body], { type: 'text/calendar;charset=utf-8' }));
@@ -508,10 +488,9 @@ function icsFile({ appointment, service, shop }) {
 function renderPainted(result) {
   const { appointment: a, service, nextReturn, shop } = result;
   const date = parseISODate(a.date);
-  const end = fromMinutes(toMinutes(a.start) + a.durationMin);
   const rel = formatRelativeDay(a.date);
   const dayWord = rel === 'hoje' || rel === 'amanhã' ? rel : WEEKDAYS[date.getDay()].replace('-feira', '');
-  const shopMessage = `Oi! Agendei ${service.name.toLowerCase()} para ${formatDateLong(a.date)}, às ${a.start} (código ${a.code}).`;
+  const shopMessage = `Oi! Agendei ${service.name.toLowerCase()} para ${formatDateLong(a.date)} (código ${a.code}).`;
 
   const section = $('#pintado');
   section.innerHTML = html`
@@ -520,10 +499,10 @@ function renderPainted(result) {
       <svg class="pintado__check" aria-hidden="true"><use href="#pincel-check"/></svg>
       <span class="tinta" style="--i:0">${dayWord}</span>
       <span class="tinta" style="--i:1">${formatDateShort(a.date)}</span>
-      <span class="pintado__hora tinta" style="--i:2">${a.start}</span>
+      <span class="pintado__hora pintado__hora--chegada tinta" style="--i:2">a partir das ${hourLabel(a.start)}</span>
     </h2>
     <dl class="pintado__ficha">
-      <div><dt>Serviço</dt><dd>${service.name}, carro pronto por volta das ${end}</dd></div>
+      <div><dt>Serviço</dt><dd>${service.name}, leva ${formatDuration(a.durationMin)}</dd></div>
       <div><dt>Carro</dt><dd>${a.vehicle}${a.plate ? ` · ${a.plate}` : ''}</dd></div>
       ${shop.address ? html`<div><dt>Onde</dt><dd>${addressHTML(shop.address)}</dd></div>` : ''}
       <div><dt>Código</dt><dd class="pintado__codigo">${a.code}</dd></div>
@@ -587,8 +566,6 @@ function bindEvents() {
     if (button && !button.disabled && button.dataset.date) selectDay(button.dataset.date);
   });
   $('#horarios').addEventListener('click', (event) => {
-    const button = event.target.closest('.horario');
-    if (button) selectTime(button.dataset.time);
     if (event.target.closest('[data-acao="recarregar"]') && state.service) selectService(state.service.id, { scroll: false });
   });
   $('#pintado').addEventListener('click', (event) => {
@@ -638,7 +615,9 @@ async function init() {
     renderServices();
     renderFooter();
 
-    if (invite && !invite.alreadyBooked) {
+    if (profile.shop.bookingOpen === false) {
+      // Agenda fechada: só a tabela de serviços, sem escolher horário.
+    } else if (invite && !invite.alreadyBooked) {
       prefill(invite);
       selectService(invite.serviceId, { scroll: false });
     } else {

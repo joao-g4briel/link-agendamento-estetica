@@ -614,6 +614,11 @@ a { color: inherit; text-underline-offset: 0.22em; text-decoration-thickness: 1p
 
 .vazio-giz a { color: var(--ouro); font-weight: 700; }
 
+/* Agenda fechada pelo dono: a tabela fica só para consulta. */
+.etapa__ajuda--fechada { color: var(--prata); font-weight: 600; }
+.etapa__ajuda--fechada a { color: var(--ouro); font-weight: 700; }
+.servico:disabled { cursor: default; background: transparent; }
+
 /* ------------------------------------------------------------------ */
 /* Ficha                                                               */
 
@@ -908,6 +913,9 @@ a { color: inherit; text-underline-offset: 0.22em; text-decoration-thickness: 1p
   line-height: 1;
 }
 
+/* Agendamento por dia: "a partir das 8h" no lugar da hora marcada. */
+.pintado__hora--chegada { margin-top: 10px; font-size: clamp(1.4rem, 6.6vw, 2.1rem); }
+
 .tinta { display: inline-block; }
 
 .pintado__check {
@@ -1011,7 +1019,7 @@ a { color: inherit; text-underline-offset: 0.22em; text-decoration-thickness: 1p
     animation-delay: calc(var(--i, 0) * 190ms + 120ms), calc(var(--i, 0) * 190ms + 520ms);
   }
 
-  .pintado .pintado__hora.tinta { background-image: var(--brilho), var(--prata-metal); }
+  .pintado .pintado__hora.tinta { background-image: var(--brilho), var(--ouro-metal); }
 
   .pintado__ficha,
   .pintado .giz-nota,

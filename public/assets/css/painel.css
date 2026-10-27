@@ -1278,6 +1278,21 @@ h1, h2, h3 { text-wrap: balance; }
 .faixa__exemplo .icone { color: var(--ouro); align-self: center; width: 16px; height: 16px; }
 .faixa__exemplo a { color: var(--ouro); font-weight: 700; }
 
+/* Agenda online fechada: o aviso fica no topo do Início até reabrir. */
+.faixa__fechada { color: var(--cal); font-size: 0.9375rem; }
+.link-faixa {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ouro);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.22em;
+  cursor: pointer;
+}
+
 /* Entrada do painel (senha) */
 .sem-sessao .trilho { display: none; }
 .sem-sessao .painel { display: block; }
