@@ -1,0 +1,18 @@
+{
+  "name": "link-hcestetica",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Link de agendamento da HC Estética Automotiva, com agenda e fila de retorno por WhatsApp.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env.local server.mjs",
+    "dev": "node --env-file-if-exists=.env.local server.mjs",
+    "banco": "node --env-file-if-exists=.env.local scripts/banco.mjs"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.0"
+  }
+}

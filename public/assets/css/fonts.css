@@ -1,0 +1,19 @@
+/* Saira (Omnibus-Type, OFL), servida pelo próprio projeto. Fonte variável:
+   largura 50–125%, peso 100–900, com itálico — a mesma construção larga,
+   pesada e inclinada do "HC" da logo. */
+@font-face {
+  font-family: 'Saira';
+  src: url('../fonts/saira-var.woff2') format('woff2');
+  font-weight: 100 900;
+  font-stretch: 50% 125%;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Saira';
+  src: url('../fonts/saira-italic-var.woff2') format('woff2');
+  font-weight: 100 900;
+  font-stretch: 50% 125%;
+  font-style: italic;
+  font-display: swap;
+}

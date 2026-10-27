@@ -1,0 +1,806 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-16T20:12:38.095Z",
+  "title": "Design System: Emblema prata e ouro",
+  "extensions": {
+    "colorMeta": {
+      "preto": {
+        "role": "neutral",
+        "displayName": "Lacquer Black",
+        "canonical": "#0b0a08",
+        "tonalRamp": [
+          "#0c0b09",
+          "#272624",
+          "#464542",
+          "#676663",
+          "#8a8986",
+          "#afaeaa",
+          "#d2d1cd",
+          "#f0eeeb"
+        ]
+      },
+      "preto-campo": {
+        "role": "neutral",
+        "displayName": "Field Black",
+        "canonical": "#13110d",
+        "tonalRamp": [
+          "#0d0b07",
+          "#282622",
+          "#474540",
+          "#686661",
+          "#8b8983",
+          "#b0aea8",
+          "#d3d1cb",
+          "#f1eee8"
+        ]
+      },
+      "ouro": {
+        "role": "primary",
+        "displayName": "Logo Gold",
+        "canonical": "#f8b80a",
+        "tonalRamp": [
+          "#130900",
+          "#352300",
+          "#5b3f00",
+          "#855e00",
+          "#b17f03",
+          "#e0a10a",
+          "#ffc760",
+          "#ffeccd"
+        ]
+      },
+      "ouro-claro": {
+        "role": "primary",
+        "displayName": "Bright Gold",
+        "canonical": "#ffd21f",
+        "tonalRamp": [
+          "#100b00",
+          "#2f2600",
+          "#524401",
+          "#786504",
+          "#a18800",
+          "#ccac05",
+          "#f3cf26",
+          "#ffefb0"
+        ]
+      },
+      "bronze-escuro": {
+        "role": "tertiary",
+        "displayName": "Dark Bronze",
+        "canonical": "#3d2a05",
+        "tonalRamp": [
+          "#130900",
+          "#352200",
+          "#55411f",
+          "#78623f",
+          "#9c8661",
+          "#c2aa85",
+          "#e5cda7",
+          "#feecce"
+        ]
+      },
+      "acento-bronze": {
+        "role": "tertiary",
+        "displayName": "Bronze Accent",
+        "canonical": "#7a4a00",
+        "tonalRamp": [
+          "#160700",
+          "#392000",
+          "#623b00",
+          "#8b5a1a",
+          "#b17d42",
+          "#d8a266",
+          "#fdc589",
+          "#feebd7"
+        ]
+      },
+      "prata": {
+        "role": "secondary",
+        "displayName": "Silver",
+        "canonical": "#ece9e2",
+        "tonalRamp": [
+          "#0d0b07",
+          "#282621",
+          "#47453f",
+          "#686660",
+          "#8c8982",
+          "#b0aea7",
+          "#d4d1ca",
+          "#f1eee7"
+        ]
+      },
+      "prata-2": {
+        "role": "secondary",
+        "displayName": "Soft Silver",
+        "canonical": "#bdb8ae",
+        "tonalRamp": [
+          "#0e0b05",
+          "#2a261e",
+          "#49453c",
+          "#6a665d",
+          "#8d897f",
+          "#b2ada3",
+          "#d5d0c6",
+          "#f3eee3"
+        ]
+      },
+      "prata-3": {
+        "role": "secondary",
+        "displayName": "Worn Silver",
+        "canonical": "#918b7f",
+        "tonalRamp": [
+          "#0f0a03",
+          "#2b261c",
+          "#4a443a",
+          "#6b655a",
+          "#8e887d",
+          "#b3ada1",
+          "#d7d0c3",
+          "#f4eee1"
+        ]
+      },
+      "contorno": {
+        "role": "secondary",
+        "displayName": "Silver Outline",
+        "canonical": "rgb(230 226 216 / 0.42)",
+        "tonalRamp": [
+          "#0e0b05",
+          "#29261f",
+          "#48453d",
+          "#69665d",
+          "#8d8980",
+          "#b1aea4",
+          "#d5d1c7",
+          "#f2eee4"
+        ]
+      },
+      "contorno-forte": {
+        "role": "secondary",
+        "displayName": "Strong Silver Outline",
+        "canonical": "rgb(236 233 226 / 0.75)",
+        "tonalRamp": [
+          "#0d0b07",
+          "#282621",
+          "#47453f",
+          "#686660",
+          "#8c8982",
+          "#b0aea7",
+          "#d4d1ca",
+          "#f1eee7"
+        ]
+      },
+      "linha-quieta": {
+        "role": "neutral",
+        "displayName": "Quiet Line",
+        "canonical": "rgb(230 226 216 / 0.13)",
+        "tonalRamp": [
+          "#0e0b05",
+          "#29261f",
+          "#48453d",
+          "#69665d",
+          "#8d8980",
+          "#b1aea4",
+          "#d5d1c7",
+          "#f2eee4"
+        ]
+      },
+      "campo-borda": {
+        "role": "neutral",
+        "displayName": "Field Rim",
+        "canonical": "#6f685a",
+        "tonalRamp": [
+          "#100a02",
+          "#2c2619",
+          "#4b4437",
+          "#6c6557",
+          "#90887a",
+          "#b5ad9e",
+          "#d8d0c0",
+          "#f6eede"
+        ]
+      },
+      "erro-noite": {
+        "role": "neutral",
+        "displayName": "Night Error",
+        "canonical": "#ff9273",
+        "tonalRamp": [
+          "#1f0100",
+          "#4a0e00",
+          "#7c2000",
+          "#a64225",
+          "#cf6749",
+          "#f88c6d",
+          "#ffc0ae",
+          "#ffe9e3"
+        ]
+      },
+      "cal": {
+        "role": "neutral",
+        "displayName": "Lime White",
+        "canonical": "#f3f1ec",
+        "tonalRamp": [
+          "#0c0b08",
+          "#282623",
+          "#464541",
+          "#686662",
+          "#8b8984",
+          "#b0aea9",
+          "#d3d1cc",
+          "#f0eee9"
+        ]
+      },
+      "tinta": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#14120e",
+        "tonalRamp": [
+          "#0d0b07",
+          "#282622",
+          "#474540",
+          "#686661",
+          "#8b8983",
+          "#b0aea8",
+          "#d3d1cb",
+          "#f1eee8"
+        ]
+      },
+      "tinta-2": {
+        "role": "neutral",
+        "displayName": "Ink 2",
+        "canonical": "#46443f",
+        "tonalRamp": [
+          "#0d0b07",
+          "#282622",
+          "#474540",
+          "#686661",
+          "#8b8983",
+          "#b0aea8",
+          "#d3d1cb",
+          "#f1eee8"
+        ]
+      },
+      "tinta-3": {
+        "role": "neutral",
+        "displayName": "Ink 3",
+        "canonical": "#66645e",
+        "tonalRamp": [
+          "#0d0b07",
+          "#282621",
+          "#47453f",
+          "#686660",
+          "#8b8983",
+          "#b0aea7",
+          "#d3d1ca",
+          "#f1eee7"
+        ]
+      },
+      "chao": {
+        "role": "neutral",
+        "displayName": "Shop Floor",
+        "canonical": "#ececeb",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#262626",
+          "#454544",
+          "#666665",
+          "#898988",
+          "#aeaead",
+          "#d1d1d0",
+          "#eeeeed"
+        ]
+      },
+      "folha": {
+        "role": "neutral",
+        "displayName": "Sheet",
+        "canonical": "#f9f9f8",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#262626",
+          "#454544",
+          "#666665",
+          "#898988",
+          "#aeaead",
+          "#d1d1d0",
+          "#eeeeed"
+        ]
+      },
+      "folha-hover": {
+        "role": "neutral",
+        "displayName": "Sheet Hover",
+        "canonical": "#f1f1f0",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#262626",
+          "#454544",
+          "#666665",
+          "#898988",
+          "#aeaead",
+          "#d1d1d0",
+          "#eeeeed"
+        ]
+      },
+      "linha": {
+        "role": "neutral",
+        "displayName": "Line",
+        "canonical": "#d9d9d6",
+        "tonalRamp": [
+          "#0b0b09",
+          "#272724",
+          "#454543",
+          "#666664",
+          "#898986",
+          "#aeaeab",
+          "#d1d1ce",
+          "#efefec"
+        ]
+      },
+      "linha-forte": {
+        "role": "neutral",
+        "displayName": "Strong Line",
+        "canonical": "#888883",
+        "tonalRamp": [
+          "#0b0b08",
+          "#272723",
+          "#454541",
+          "#666662",
+          "#898984",
+          "#aeaea9",
+          "#d1d1cc",
+          "#efefe9"
+        ]
+      },
+      "ouro-fundo": {
+        "role": "tertiary",
+        "displayName": "Pale Gold Wash",
+        "canonical": "#fbefc8",
+        "tonalRamp": [
+          "#100a00",
+          "#2f2503",
+          "#4f4423",
+          "#706643",
+          "#948965",
+          "#b9ae89",
+          "#ddd1ab",
+          "#faeec7"
+        ]
+      },
+      "zarcao": {
+        "role": "neutral",
+        "displayName": "Signal Red-Orange",
+        "canonical": "#cf3c12",
+        "tonalRamp": [
+          "#1f0000",
+          "#4b0a00",
+          "#7e1b00",
+          "#b52d01",
+          "#e4512b",
+          "#ff8769",
+          "#fec0b0",
+          "#fee9e4"
+        ]
+      },
+      "zarcao-texto": {
+        "role": "neutral",
+        "displayName": "Signal Red-Orange Text",
+        "canonical": "#a8320c",
+        "tonalRamp": [
+          "#1f0000",
+          "#4a0d00",
+          "#7d1e00",
+          "#ae3815",
+          "#d85f3e",
+          "#fe8767",
+          "#fec0af",
+          "#fee9e3"
+        ]
+      },
+      "zarcao-fundo": {
+        "role": "neutral",
+        "displayName": "Pale Red",
+        "canonical": "#fbe2d8",
+        "tonalRamp": [
+          "#160703",
+          "#33221a",
+          "#544038",
+          "#766158",
+          "#9a847b",
+          "#c0a89f",
+          "#e4cbc1",
+          "#feeae2"
+        ]
+      },
+      "whats": {
+        "role": "neutral",
+        "displayName": "WhatsApp Green",
+        "canonical": "#137a43",
+        "tonalRamp": [
+          "#001004",
+          "#003015",
+          "#00542a",
+          "#127a43",
+          "#429e65",
+          "#6ac589",
+          "#8ee9ab",
+          "#c6ffd6"
+        ]
+      },
+      "whats-escuro": {
+        "role": "neutral",
+        "displayName": "WhatsApp Green Deep",
+        "canonical": "#0f6637",
+        "tonalRamp": [
+          "#001004",
+          "#003015",
+          "#02542a",
+          "#287847",
+          "#4f9c6a",
+          "#75c28d",
+          "#98e6b0",
+          "#c7ffd6"
+        ]
+      },
+      "placa-azul": {
+        "role": "neutral",
+        "displayName": "Plate Blue",
+        "canonical": "#1c3e9c",
+        "tonalRamp": [
+          "#010038",
+          "#021272",
+          "#193a98",
+          "#385fbf",
+          "#5984e8",
+          "#86acfe",
+          "#bbd1ff",
+          "#e7effe"
+        ]
+      },
+      "placa-branca": {
+        "role": "neutral",
+        "displayName": "Plate White",
+        "canonical": "#f4f4f2",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#262625",
+          "#454543",
+          "#666664",
+          "#898987",
+          "#aeaeac",
+          "#d1d1cf",
+          "#eeeeec"
+        ]
+      },
+      "ouro-metal": {
+        "role": "primary",
+        "displayName": "Gold Metal",
+        "canonical": "linear-gradient(180deg, #fff6b0 0%, #ffd21f 28%, #f8b80a 46%, #9a5a00 50%, #e09b0b 63%, #fff1a0 100%)",
+        "tonalRamp": [
+          "#3d2a05",
+          "#9a5a00",
+          "#e09b0b",
+          "#f8b80a",
+          "#ffd21f",
+          "#fff1a0",
+          "#fff6b0",
+          "#fffbe0"
+        ],
+        "note": "Display text only, clipped to text with the gilt shade."
+      },
+      "ouro-placa": {
+        "role": "primary",
+        "displayName": "Gold Plate",
+        "canonical": "linear-gradient(180deg, #ffe27a 0%, #fbc52a 42%, #eba20a 100%)",
+        "tonalRamp": [
+          "#120a00",
+          "#322400",
+          "#584101",
+          "#806103",
+          "#ab8307",
+          "#d7a616",
+          "#fcc94c",
+          "#ffedc5"
+        ],
+        "note": "Fill of every chosen choice and of the gold plate buttons."
+      },
+      "prata-metal": {
+        "role": "secondary",
+        "displayName": "Silver Metal",
+        "canonical": "linear-gradient(180deg, #ffffff 0%, #ecebe8 44%, #8e8b85 50%, #d4d2cc 64%, #fafafa 100%)",
+        "tonalRamp": [
+          "#0c0b09",
+          "#272624",
+          "#464542",
+          "#676663",
+          "#8a8986",
+          "#afaeab",
+          "#d2d1ce",
+          "#efeeeb"
+        ],
+        "note": "Confirmation time line only."
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Confirmation date (gold metal); the time line beneath it is 800 roman in silver metal."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Public step titles and panel band titles, in gold metal."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Service names on the sign board; booking summary line in solid gold."
+      },
+      "price": {
+        "displayName": "Price",
+        "purpose": "Prices in solid Logo Gold."
+      },
+      "section": {
+        "displayName": "Section",
+        "purpose": "Panel section titles on the light sheet."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Running text on both surfaces."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Tracked silver caps group labels with a fading gold rule."
+      },
+      "plate": {
+        "displayName": "Plate",
+        "purpose": "Every Mercosul plate; the one condensed use of Saira."
+      }
+    },
+    "shadows": [
+      {
+        "name": "gilt-shade",
+        "value": "drop-shadow(0 0.045em 0 #000)",
+        "purpose": "Filter under metal-gradient display text and gold checks."
+      },
+      {
+        "name": "plate-seat",
+        "value": "0 2px 0 #000, 0 12px 22px -12px rgb(0 0 0 / 0.9)",
+        "purpose": "Seats the public gold plate button on the lacquer."
+      },
+      {
+        "name": "plate-rim",
+        "value": "inset 0 0 0 2.5px #14120e, 0 2px 0 rgb(0 0 0 / 0.3)",
+        "purpose": "Black rim of the Mercosul plate search."
+      },
+      {
+        "name": "menu-lift",
+        "value": "0 12px 28px -10px rgb(0 0 0 / 0.35), 0 2px 6px rgb(0 0 0 / 0.08)",
+        "purpose": "Panel action menu popover."
+      },
+      {
+        "name": "toast-lift",
+        "value": "0 10px 30px -8px rgb(0 0 0 / 0.55)",
+        "purpose": "Black undo toast."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-saida",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "The only easing; all state transitions and entrances."
+      },
+      {
+        "name": "state",
+        "value": "0.15s to 0.2s",
+        "purpose": "Hover, border and fill changes on controls and rows."
+      },
+      {
+        "name": "preenche",
+        "value": "0.3s, opacity 0.2 to 1",
+        "purpose": "Gold plate fill when a day or slot is chosen."
+      },
+      {
+        "name": "surge",
+        "value": "0.42s, opacity plus 10px rise",
+        "purpose": "Each public step entering."
+      },
+      {
+        "name": "revela-brilho",
+        "value": "0.55s clip reveal, 1.2s shine sweep, 190ms word stagger",
+        "purpose": "Confirmation ritual on the gold date and silver time."
+      },
+      {
+        "name": "inclinacao",
+        "value": "skewX(-10deg)",
+        "purpose": "Lean of public choice and button backings."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "form-2col",
+        "value": "640px"
+      },
+      {
+        "name": "hours-2col",
+        "value": "760px"
+      },
+      {
+        "name": "wide",
+        "value": "1000px"
+      },
+      {
+        "name": "list-actions-right (container query)",
+        "value": "620px"
+      }
+    ],
+    "textures": [
+      {
+        "name": "flocos",
+        "value": "url('assets/img/flocos.svg')",
+        "purpose": "Procedural gold metal-flake grain tiled on black lacquer."
+      },
+      {
+        "name": "sheen",
+        "value": "radial-gradient(140% 50% at 50% 0%, rgb(255 214 120 / 0.075), transparent 72%)",
+        "purpose": "Warm overhead sheen on the public ground."
+      },
+      {
+        "name": "filete",
+        "value": "linear-gradient(90deg, transparent, #f8b80a 14%, #f8b80a 86%, transparent)",
+        "purpose": "Gold hairline rule between steps, from the logo."
+      },
+      {
+        "name": "hachura",
+        "value": "repeating-linear-gradient(135deg, rgb(236 233 226 / 0.16) 0 2px, transparent 2px 7px)",
+        "purpose": "Lunch-break hatch on the day board (kept detector advisory)."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Gold Plate Button",
+      "kind": "button",
+      "refersTo": "button-gold-plate",
+      "description": "Public primary action: a leaning gold plate with an upright black italic label.",
+      "html": "<div class=\"ds-noite\"><button class=\"ds-placa-botao\">Confirmar agendamento</button></div>",
+      "css": ".ds-noite { background: #0b0a08; padding: 24px; } .ds-placa-botao { position: relative; isolation: isolate; border: 0; background: none; font-family: 'Saira', system-ui, sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 60px; padding: 12px 22px 13px; color: #0b0a08; font-style: italic; font-weight: 800; font-stretch: 115%; font-size: 1.1875rem; line-height: 1; letter-spacing: 0.02em; text-transform: uppercase; transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1); } .ds-placa-botao::before { content: ''; position: absolute; inset: 0 5px; z-index: -1; transform: skewX(-10deg); border: 1.5px solid rgb(230 226 216 / 0.42); border-radius: 3px; transition: background-color 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.18s cubic-bezier(0.22, 1, 0.36, 1), filter 0.18s cubic-bezier(0.22, 1, 0.36, 1); inset: 0 6px; border: 0; background: linear-gradient(180deg, #ffe27a 0%, #fbc52a 42%, #eba20a 100%); box-shadow: 0 2px 0 #000, 0 12px 22px -12px rgb(0 0 0 / 0.9); } .ds-placa-botao:hover::before { filter: brightness(1.07); } .ds-placa-botao:active { transform: translateY(1px); } .ds-placa-botao:focus-visible { outline: 2px solid #ffd21f; outline-offset: 3px; }"
+    },
+    {
+      "name": "Silver Outline Button",
+      "kind": "button",
+      "refersTo": "button-silver-outline",
+      "description": "Public secondary action: a leaning silver outline, upright label, gold icon.",
+      "html": "<div class=\"ds-noite\"><a class=\"ds-botao-giz\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polygon points=\"3 11 22 2 13 21 11 13 3 11\"/></svg>Como chegar</a></div>",
+      "css": ".ds-noite { background: #0b0a08; padding: 24px; } .ds-botao-giz { position: relative; isolation: isolate; border: 0; background: none; font-family: 'Saira', system-ui, sans-serif; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; min-height: 52px; padding: 10px 18px; color: #ece9e2; font-weight: 600; font-size: 1rem; text-decoration: none; } .ds-botao-giz svg { color: #f8b80a; } .ds-botao-giz::before { content: ''; position: absolute; inset: 0 5px; z-index: -1; transform: skewX(-10deg); border: 1.5px solid rgb(230 226 216 / 0.42); border-radius: 3px; transition: background-color 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.18s cubic-bezier(0.22, 1, 0.36, 1), filter 0.18s cubic-bezier(0.22, 1, 0.36, 1); } .ds-botao-giz:hover::before { border-color: rgb(236 233 226 / 0.75); background-color: rgb(255 255 255 / 0.04); } .ds-botao-giz:focus-visible { outline: 2px solid #ffd21f; outline-offset: 3px; }"
+    },
+    {
+      "name": "Slot Choice (open / chosen)",
+      "kind": "chip",
+      "refersTo": "choice-chosen",
+      "description": "Days and slots: silver lean outline when open, gold plate when chosen; text stays upright.",
+      "html": "<div class=\"ds-noite ds-slots\"><button class=\"ds-horario\">08:00</button><button class=\"ds-horario\" aria-pressed=\"true\">10:30</button><button class=\"ds-horario\">13:00</button></div>",
+      "css": ".ds-noite { background: #0b0a08; padding: 24px; } .ds-slots { display: grid; grid-template-columns: repeat(3, 96px); gap: 8px 4px; } .ds-horario { position: relative; isolation: isolate; border: 0; background: none; font-family: 'Saira', system-ui, sans-serif; cursor: pointer; min-height: 52px; padding: 6px 8px; color: #ece9e2; font-style: italic; font-weight: 700; font-stretch: 108%; font-size: 1.125rem; font-variant-numeric: tabular-nums; } .ds-horario::before { content: ''; position: absolute; inset: 0 5px; z-index: -1; transform: skewX(-10deg); border: 1.5px solid rgb(230 226 216 / 0.42); border-radius: 3px; transition: background-color 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.18s cubic-bezier(0.22, 1, 0.36, 1), filter 0.18s cubic-bezier(0.22, 1, 0.36, 1); } .ds-horario:hover::before { border-color: rgb(236 233 226 / 0.75); background-color: rgb(255 255 255 / 0.04); } .ds-horario[aria-pressed='true'] { color: #0b0a08; font-weight: 800; } .ds-horario[aria-pressed='true']::before { border-color: transparent; background: linear-gradient(180deg, #ffe27a 0%, #fbc52a 42%, #eba20a 100%); } .ds-horario:focus-visible { outline: 2px solid #ffd21f; outline-offset: 3px; }"
+    },
+    {
+      "name": "Sign-board Service Row",
+      "kind": "custom",
+      "refersTo": "service-row",
+      "description": "Signature public row: silver italic caps name, dotted gold leader, solid gold price, small-caps metadata.",
+      "html": "<div class=\"ds-noite\"><button class=\"ds-servico\"><span class=\"ds-nome\">Lavagem detalhada</span><span class=\"ds-pontos\"></span><span class=\"ds-preco\"><small>a partir de</small>R$ 120</span><span class=\"ds-meta\">2h de serviço · refazer todo mês</span></button></div>",
+      "css": ".ds-noite { background: #0b0a08; padding: 24px; } .ds-servico { appearance: none; display: grid; grid-template-columns: auto minmax(16px, 1fr) auto; align-items: end; column-gap: 10px; width: 100%; padding: 15px 14px 16px; border: 0; border-radius: 4px; background: transparent; color: #ece9e2; font-family: 'Saira', system-ui, sans-serif; text-align: left; cursor: pointer; transition: background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1); } .ds-servico:hover { background: rgb(255 255 255 / 0.045); } .ds-servico:focus-visible { outline: 2px solid #ffd21f; outline-offset: 3px; } .ds-nome { font-style: italic; font-weight: 800; font-stretch: 112%; font-size: 1.5rem; line-height: 1.08; text-transform: uppercase; max-width: 14ch; } .ds-pontos { height: 4px; margin-bottom: 0.4em; background: radial-gradient(circle, rgb(248 184 10 / 0.55) 1.2px, transparent 1.7px) 0 50% / 8px 4px repeat-x; } .ds-preco { display: grid; justify-items: end; font-style: italic; font-weight: 800; font-stretch: 110%; font-size: 1.7rem; line-height: 1; color: #f8b80a; white-space: nowrap; } .ds-preco small { font-style: normal; font-weight: 500; font-size: 0.6875rem; line-height: 1.5; letter-spacing: 0.08em; text-transform: uppercase; color: #918b7f; } .ds-meta { grid-column: 1 / -1; margin-top: 7px; color: #bdb8ae; font-size: 0.8125rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }"
+    },
+    {
+      "name": "Gilded Display Title",
+      "kind": "custom",
+      "refersTo": "headline",
+      "description": "Display lines only: gold-metal gradient with the logo chrome horizon and the gilt shade.",
+      "html": "<div class=\"ds-noite\"><h2 class=\"ds-titulo\">Serviços</h2></div>",
+      "css": ".ds-noite { background: #0b0a08; padding: 24px; } .ds-titulo { margin: 0; font-family: 'Saira', system-ui, sans-serif; font-style: italic; font-weight: 900; font-stretch: 122%; font-size: 2.25rem; line-height: 1.05; text-transform: uppercase; letter-spacing: 0.005em; background: linear-gradient(180deg, #ffffff 0%, #ecebe8 44%, #8e8b85 50%, #d4d2cc 64%, #fafafa 100%); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-stroke: 0.035em #f8b80a; paint-order: stroke fill; filter: drop-shadow(0 0.05em 0 #000); display: inline-block; }"
+    },
+    {
+      "name": "Black Plate Button (panel primary)",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary action on the light sheet: ink plate, gold label; with line and text siblings.",
+      "html": "<div class=\"ds-folha\"><button class=\"ds-btn ds-btn-primario\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 6 9 17l-5-5\"/></svg>Concluir</button> <button class=\"ds-btn ds-btn-linha\">Agendar</button> <button class=\"ds-btn ds-btn-texto\">Semana</button></div>",
+      "css": ".ds-folha { background: #f9f9f8; padding: 24px; display: flex; gap: 8px; } .ds-btn { appearance: none; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 9px 16px; border: 1.5px solid transparent; border-radius: 6px; background: transparent; color: #14120e; font: 700 0.9375rem/1.2 'Saira', system-ui, sans-serif; cursor: pointer; transition: background-color 0.15s cubic-bezier(0.22, 1, 0.36, 1); } .ds-btn:focus-visible { outline: 3px solid #7a4a00; outline-offset: 2px; } .ds-btn-primario { background: #14120e; color: #f8b80a; } .ds-btn-primario:hover { background: #2a251b; } .ds-btn-linha { border-color: #888883; background: #f9f9f8; } .ds-btn-linha:hover { background: #e9e9e6; } .ds-btn-texto { padding-inline: 10px; color: #7a4a00; } .ds-btn-texto:hover { background: #f1e9d6; }"
+    },
+    {
+      "name": "Band Actions (panel, on black)",
+      "kind": "button",
+      "refersTo": "button-band-gold",
+      "description": "On the black band: one gold-plate main action, silver-outline secondaries.",
+      "html": "<div class=\"ds-faixa\"><button class=\"ds-b ds-b-ouro\">+ Novo agendamento</button><button class=\"ds-b ds-b-giz\">Marcar folga</button></div>",
+      "css": ".ds-faixa { background: #0b0a08; padding: 24px; display: flex; gap: 8px; } .ds-b { appearance: none; min-height: 38px; padding: 6px 12px; border: 1.5px solid transparent; border-radius: 6px; font: 700 0.875rem/1.2 'Saira', system-ui, sans-serif; cursor: pointer; } .ds-b:focus-visible { outline: 3px solid #f8b80a; outline-offset: 2px; } .ds-b-ouro { background: linear-gradient(180deg, #ffe27a 0%, #fbc52a 42%, #eba20a 100%); color: #14120e; } .ds-b-ouro:hover { filter: brightness(1.06); } .ds-b-giz { border-color: rgb(236 233 226 / 0.42); background: transparent; color: #f3f1ec; } .ds-b-giz:hover { background-color: rgb(236 233 226 / 0.1); }"
+    },
+    {
+      "name": "Mercosul Plate Search",
+      "kind": "input",
+      "refersTo": "plate-search",
+      "description": "The literal plate: white face, blue BRASIL band, black rim, condensed tracked Saira.",
+      "html": "<div class=\"ds-faixa\"><label class=\"ds-busca\"><span class=\"ds-busca-faixa\">BRASIL</span><input type=\"search\" placeholder=\"Placa, nome ou carro\"></label></div>",
+      "css": ".ds-faixa { background: #0b0a08; padding: 24px; } .ds-busca { display: block; overflow: hidden; border-radius: 8px; background: #f3f1ec; box-shadow: inset 0 0 0 2.5px #14120e, 0 2px 0 rgb(0 0 0 / 0.3); } .ds-busca:focus-within { outline: 3px solid #f8b80a; outline-offset: 3px; } .ds-busca-faixa { display: block; margin: 2.5px 2.5px 0; padding: 3px 0 2px; border-radius: 5px 5px 0 0; border-bottom: 2.5px solid #14120e; background: #1c3e9c; color: #f3f1ec; font: 800 0.625rem/1.2 'Saira', system-ui, sans-serif; letter-spacing: 0.34em; text-align: center; } .ds-busca input { width: 100%; min-height: 52px; padding: 10px 16px 12px; border: 0; background: transparent; color: #14120e; font: 700 1.3rem/1.2 'Saira', system-ui, sans-serif; font-stretch: 82%; letter-spacing: 0.08em; text-transform: uppercase; } .ds-busca input:focus-visible { outline: none; } .ds-busca input::placeholder { color: #565e7b; font-weight: 600; }"
+    },
+    {
+      "name": "Panel Field",
+      "kind": "input",
+      "refersTo": "field-light",
+      "description": "Text field on the light sheet: white, strong line, bronze focus.",
+      "html": "<div class=\"ds-folha\"><label class=\"ds-campo\"><span>Nome do cliente</span><input type=\"text\" placeholder=\"Ex.: Marcos\"></label></div>",
+      "css": ".ds-folha { background: #f9f9f8; padding: 24px; } .ds-campo { display: grid; gap: 6px; font: 700 0.9375rem/1.3 'Saira', system-ui, sans-serif; color: #14120e; } .ds-campo input { min-height: 48px; padding: 10px 12px; border: 1.5px solid #888883; border-radius: 6px; background: #fff; color: #14120e; font: 500 1rem/1.35 'Saira', system-ui, sans-serif; } .ds-campo input:hover { border-color: #66645e; } .ds-campo input:focus-visible { border-color: #7a4a00; outline: 3px solid rgb(184 120 12 / 0.3); outline-offset: 0; }"
+    },
+    {
+      "name": "Status Chips and Mini Plate",
+      "kind": "chip",
+      "refersTo": "status-chip",
+      "description": "Pill chips with icon and words, never color alone; the literal mini Mercosul plate beside them.",
+      "html": "<div class=\"ds-folha\"><span class=\"ds-selo ds-hoje\">vence hoje</span> <span class=\"ds-selo ds-atraso\">venceu há 3 dias</span> <span class=\"ds-selo ds-feito\">concluído</span> <span class=\"ds-selo ds-retorno\">em 12 dias</span> <span class=\"ds-placa-mini\">QWE3F18</span></div>",
+      "css": ".ds-folha { background: #f9f9f8; padding: 24px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; } .ds-selo { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font: 700 0.75rem/1.4 'Saira', system-ui, sans-serif; white-space: nowrap; } .ds-hoje { background: #f8b80a; color: #14120e; } .ds-atraso { background: #fbe2d8; color: #a8320c; } .ds-feito { background: #e6e6e3; color: #7a4a00; } .ds-retorno { background: #fbefc8; color: #14120e; } .ds-placa-mini { display: inline-block; padding: 4px 6px 0; border: 1.5px solid #14120e; border-radius: 3px; background: linear-gradient(#1c3e9c 0 4px, #fff 4px); color: #14120e; font: 700 0.75rem/1.35 'Saira', system-ui, sans-serif; font-stretch: 85%; letter-spacing: 0.07em; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Gilded Sign on Black Lacquer",
+    "overview": "Everything is made of the logo's own materials. Black lacquer is the ground, with a fine procedural gold metal-flake grain and a soft warm sheen from above. Gold carries what matters: the step titles, the prices, and whatever the visitor has chosen. Silver carries what is still open and the quiet text. One typeface, Saira, does all the work. Display lines use it wide, heavy and oblique like the logo lettering, labels use it as tracked silver caps, and running text uses it plainly. The public booking link reads like a sign board: service lines with dotted gold leaders running to gold prices, open days and times drawn as silver outlines that lean like the logo's italics, the chosen one filled with a solid gold plate. Confirming gilds the appointment, and a polishing shine sweeps once across the gold date.\n\nThe owner's panel uses the same brand as a workbench. A black lacquer band at the top holds the logo, the gold-metal title, a search shaped like a Mercosul plate, and the day board. Under the band sits a neutral silver-white work surface for lists and forms, legible in a bright workshop. On that light surface the primary action is a black plate with a gold label, which is the logo's own pairing. Gold fill is kept for the chosen state and the band's one main action.\n\nDensity is moderate on the public link (one step at a time, generous rows) and working-dense on the panel (hairline-divided rows, 44px controls). Depth comes from material, meaning metal gradients, a thin dark drop shade under gilded type, and the black band against the light sheet. Stacked shadows are not used to show depth.",
+    "keyCharacteristics": [
+      "Owner-pinned materials: the HC round emblem, black, saturated metallic gold from pale to bronze, chrome silver/white, and a wide heavy oblique sans.",
+      "Metal gradient type only on display lines. Everything smaller is solid gold or silver.",
+      "Silver outline = open, solid gold plate = chosen, on every choice surface.",
+      "Public choices lean through a skewed shape behind upright text.",
+      "The panel is split into a black band and a silver-white sheet. Black-and-gold plates are its primary actions.",
+      "The Mercosul plate is the one literal object: white, blue band, black rim."
+    ],
+    "rules": [
+      {
+        "name": "The Display-Only Metal Rule",
+        "body": "The gold-metal gradient (and its silver sibling) is clipped to text only on display lines: public step titles, panel band titles, and the confirmation date and time. Prices, codes, labels and small text use solid Logo Gold. If the dark horizon band would cut through a line shorter than about 1.75rem, use solid gold instead.",
+        "section": "colors"
+      },
+      {
+        "name": "The Open/Chosen Rule",
+        "body": "A silver outline means \"open, choose me\" and a solid gold plate means \"chosen\". This holds for days, slots, service rows, panel segments and the active desktop tab. Do not swap the meanings or invent a third selection style.",
+        "section": "colors"
+      },
+      {
+        "name": "The Black Plate Rule",
+        "body": "On the light sheet, the primary action is a black plate with a gold label. Gold fill on the sheet means a chosen state. On the black band, the one main action may be a gold plate, and secondary band actions are silver outlines.",
+        "section": "colors"
+      },
+      {
+        "name": "The Green-Only-for-WhatsApp Rule",
+        "body": "WhatsApp green appears only on controls that open WhatsApp.",
+        "section": "colors"
+      },
+      {
+        "name": "The Lean Lettering Rule",
+        "body": "Display and choice numerals are italic, and running text is roman. Times, prices and plates use tabular numerals.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Family Rule",
+        "body": "Saira is the only typeface. Hierarchy comes from width, weight and slant, never from a second family or a system display face.",
+        "section": "typography"
+      },
+      {
+        "name": "The Material-Not-Shadow Rule",
+        "body": "Depth comes from metal, lacquer and the band/sheet split. Shadows are kept to the plate seat, the plate rims and the two transient popovers. Rows, sheets and cards on the panel are flat.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** use the logo raster (`logo-480.webp` / `logo-960.webp`, square, transparent) as the mark on black. Never redraw it in type.",
+      "**Do** keep the gold-metal gradient to display lines (step titles, band titles, confirmation date and time), with the gilt shade underneath. Set prices and small text in solid Logo Gold.",
+      "**Do** express choice as silver outline = open and solid Gold Plate = chosen, everywhere.",
+      "**Do** lean public choices and buttons through a skewed shape behind them (-10deg) and keep their text upright.",
+      "**Do** make the panel's primary action on the light sheet a black plate with a gold label. Reserve gold fill for the chosen state and the band's single main action.",
+      "**Do** use Bronze Accent for accent text on the light sheet. Logo Gold fails contrast there.",
+      "**Do** keep the Mercosul plate literal: white face, blue band, black rim, condensed tracked Saira.",
+      "**Do** give every status chip an icon and words. Never rely on color alone."
+    ],
+    "donts": [
+      "**Don't** set metal-gradient text below display size or on body copy, prices, codes or labels.",
+      "**Don't** fill an unchosen choice with gold, or use a silver outline to mark a selection.",
+      "**Don't** skew the text inside a leaning button or chip. Only its backing shape leans.",
+      "**Don't** put gold-filled buttons on the light sheet as generic primary actions.",
+      "**Don't** add a second typeface or fall back to a system display face for headings.",
+      "**Don't** use WhatsApp green for anything that does not open WhatsApp.",
+      "**Don't** tint the work surface warm or cream. It stays neutral silver-white (`chao`, `folha`).",
+      "**Don't** add a glossy car photo, stock imagery, testimonials, ratings or client counts. Imagery is the logo and the procedural metal grain."
+    ]
+  }
+}
