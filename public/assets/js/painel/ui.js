@@ -1,7 +1,7 @@
 // Peças compartilhadas do painel.
 
 import * as api from '../data/api.js';
-import { diffDays, fromMinutes, toMinutes, today } from '../core/dates.js';
+import { diffDays, today } from '../core/dates.js';
 import {
   formatDateLong, formatDateShort, formatDateShortYear, formatPhone, formatRelativeDay, html, raw,
 } from '../core/format.js';
@@ -24,9 +24,6 @@ export function hourLabel(hhmm) {
   return m === '00' ? `${Number(h)}h` : `${Number(h)}h${m}`;
 }
 
-export function endTime(appointment) {
-  return fromMinutes(toMinutes(appointment.start) + appointment.durationMin);
-}
 
 // ---------------------------------------------------------------------------
 // Aviso flutuante com "Desfazer"
@@ -40,7 +37,7 @@ export function toast(message, { undo, duration = 5200 } = {}) {
   if (undo) {
     $('[data-desfazer]', box).addEventListener('click', async () => {
       box.hidden = true;
-      await undo();
+      try { await undo(); } catch (error) { toast(error.message || 'Não deu para desfazer.'); }
     }, { once: true });
   }
   toastTimer = setTimeout(() => { box.hidden = true; }, duration);
@@ -51,6 +48,10 @@ export function toast(message, { undo, duration = 5200 } = {}) {
 
 const STATUS = {
   agendado: null,
+  confirmado: { cls: 'feito', icon: 'check', label: 'confirmado' },
+  recebido: { cls: 'feito', icon: 'check', label: 'recebido' },
+  em_servico: { cls: 'feito', icon: 'wrench', label: 'em serviço' },
+  pronto: { cls: 'feito', icon: 'check', label: 'pronto para retirada' },
   concluido: { cls: 'feito', icon: 'check', label: 'concluído' },
   faltou: { cls: 'faltou', icon: 'x', label: 'não veio' },
   cancelado: { cls: 'cancelado', icon: 'ban', label: 'cancelado' },
@@ -75,13 +76,13 @@ export function dueLabel(ret) {
 
 export function appointmentRow(a, { settings, showDate = false, highlight = false } = {}) {
   const isToday = a.date === today();
-  const finished = a.status !== 'agendado';
-  const canComplete = a.status === 'agendado' && a.date <= today();
+  const finished = ['concluido', 'faltou', 'cancelado'].includes(a.status);
+  const canComplete = !finished && a.date <= today();
   const cls = ['item', `item--${{ concluido: 'feito', faltou: 'faltou', cancelado: 'cancelado' }[a.status] || 'aberto'}`, highlight ? 'item--novo' : ''].join(' ');
   const rel = formatRelativeDay(a.date);
   return html`
-    <li class="${cls}" data-agendamento="${a.id}">
-      <div class="item__hora">${showDate && !isToday ? html`<small>${rel}</small>` : ''}${a.start}<small>até ${endTime(a)}</small></div>
+    <li class="${cls}" data-agendamento="${a.id}" data-status="${a.status}">
+      <div class="item__hora">${showDate && !isToday ? html`<small>${rel}</small>` : ''}${a.start}<small>chegada</small></div>
       <div class="item__corpo">
         <p class="item__titulo">${a.vehicle} ${placa(a.plate)} ${statusSelo(a)}</p>
         <p class="item__sub">${a.service.name} · ${a.customer.name}${a.source === 'retorno' ? html` · <span class="selo selo--retorno">${icon('repeat')}voltou pelo retorno</span>` : ''}</p>
@@ -94,8 +95,10 @@ export function appointmentRow(a, { settings, showDate = false, highlight = fals
         <details class="menu">
           <summary class="btn btn--texto btn--icone" aria-label="Mais ações para ${a.vehicle}">${icon('ellipsis')}</summary>
           <div class="menu__painel">
+            <a class="btn btn--texto" href="#/novo?editar=${a.id}">${icon('pencil')}Editar / remarcar</a>
+            ${!finished ? ['confirmado', 'recebido', 'em_servico', 'pronto'].filter(s => s !== a.status).map(s => html`<button type="button" class="btn btn--texto" data-acao="${s}">${STATUS[s].label}</button>`) : ''}
             ${a.customer.phone ? html`<a class="btn btn--texto" data-acao="link" href="${waLink(a.customer.phone)}" target="_blank" rel="noopener">${icon('whatsapp')}WhatsApp do cliente</a>` : ''}
-            ${a.status === 'agendado' ? html`
+            ${!finished ? html`
               <button type="button" class="btn btn--texto" data-acao="faltou">${icon('x')}Não veio</button>
               <button type="button" class="btn btn--texto btn--perigo" data-acao="cancelar">${icon('ban')}Cancelar horário</button>` : ''}
             ${finished ? html`<button type="button" class="btn btn--texto" data-acao="reabrir">${icon('undo-2')}Voltar para agendado</button>` : ''}
@@ -116,14 +119,14 @@ export function bindAppointmentActions(root, onChange) {
 
     if (action === 'link') return;
 
-    const next = { concluir: 'concluido', faltou: 'faltou', cancelar: 'cancelado', reabrir: 'agendado' }[action];
+    const next = { concluir: 'concluido', faltou: 'faltou', cancelar: 'cancelado', reabrir: 'agendado', confirmado: 'confirmado', recebido: 'recebido', em_servico: 'em_servico', pronto: 'pronto' }[action];
     if (!next) return;
     target.closest('details')?.removeAttribute('open');
+    if (target.disabled) return;
+    target.disabled = true;
     target.setAttribute('aria-busy', 'true');
     try {
-      const before = row.querySelector('.selo--feito') ? 'concluido'
-        : row.querySelector('.selo--faltou') ? 'faltou'
-        : row.querySelector('.selo--cancelado') ? 'cancelado' : 'agendado';
+      const before = row.dataset.status;
       const result = await api.setAppointmentStatus(id, next);
       const undo = async () => { await api.setAppointmentStatus(id, before); onChange?.(); };
       if (next === 'concluido') {
@@ -134,11 +137,13 @@ export function bindAppointmentActions(root, onChange) {
       } else if (next === 'cancelado') {
         toast('Horário cancelado e liberado no link.', { undo });
       } else {
-        toast('Voltou para agendado.');
+        toast(next === 'agendado' ? 'Voltou para agendado.' : 'Situação atualizada.');
       }
       onChange?.();
     } catch (error) {
       toast(error.message || 'Não deu para salvar. Tente de novo.');
+    } finally {
+      target.disabled = false;
       target.removeAttribute('aria-busy');
     }
   });
@@ -168,6 +173,7 @@ export function returnRow(r, { settings, baseUrl, mode = 'avisar' }) {
       ${mode !== 'voltaram' ? html`
         <div class="item__acoes">
           ${phone ? html`<a class="btn btn--whats btn--pequeno" data-acao="avisar" aria-label="${mode === 'aguardando' ? 'Chamar de novo' : 'Avisar'} ${r.customer.name} no WhatsApp" href="${waLink(phone, message)}" target="_blank" rel="noopener">${icon('whatsapp')}${mode === 'aguardando' ? 'Chamar de novo' : 'Avisar'}</a>` : html`<span class="selo selo--cancelado">sem WhatsApp</span>`}
+          ${phone && mode !== 'aguardando' ? html`<button type="button" class="btn btn--linha btn--pequeno" data-acao="enviado">Marcar como enviado</button>` : ''}
           <a class="btn btn--linha btn--pequeno" href="#/novo?retorno=${r.id}">${icon('calendar-plus')}Agendar</a>
           <details class="menu">
             <summary class="btn btn--texto btn--icone" aria-label="Mais ações para o retorno de ${r.customer.name}">${icon('ellipsis')}</summary>
@@ -190,7 +196,13 @@ export function bindReturnActions(root, onChange) {
     const action = target.dataset.acao;
 
     if (action === 'avisar') {
-      // O link abre o WhatsApp; aqui só registramos o aviso.
+      toast('O WhatsApp foi aberto. Após enviar, toque em “Marcar como enviado”.');
+      return;
+    }
+    if (target.disabled) return;
+    target.disabled = true;
+    try {
+    if (action === 'enviado') {
       const before = await api.getReturnMessageData(id);
       await api.markReturnNotified(id);
       toast('Marcado como avisado. Ele sai da fila de hoje.', {
@@ -213,6 +225,8 @@ export function bindReturnActions(root, onChange) {
       });
       onChange?.();
     }
+    } catch (error) { toast(error.message || 'Não deu para atualizar o retorno.'); }
+    finally { target.disabled = false; }
   });
 }
 
@@ -223,7 +237,7 @@ export function showFieldErrors(form, fields = {}) {
   $$('.campo[data-erro]', form).forEach((campo) => {
     delete campo.dataset.erro;
     campo.querySelector('.campo__erro')?.remove();
-    campo.querySelectorAll('[aria-invalid]').forEach((el) => el.removeAttribute('aria-invalid'));
+    campo.querySelectorAll('[aria-invalid]').forEach((el) => { el.removeAttribute('aria-invalid'); el.removeAttribute('aria-describedby'); });
   });
   let first = null;
   for (const [name, message] of Object.entries(fields)) {
@@ -245,4 +259,16 @@ export function showFieldErrors(form, fields = {}) {
 
 export function phoneDisplay(phone) {
   return phone ? formatPhone(phone) : '';
+}
+
+export function bindSubmit(form, action) {
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = form.querySelector('[type="submit"]');
+    if (button?.disabled) return;
+    if (button) { button.disabled = true; button.setAttribute('aria-busy', 'true'); }
+    try { await action(event); }
+    catch (error) { if (error.fields) showFieldErrors(form, error.fields); else toast(error.message || 'Não deu para salvar. Tente de novo.'); }
+    finally { if (button) { button.disabled = false; button.removeAttribute('aria-busy'); } }
+  });
 }

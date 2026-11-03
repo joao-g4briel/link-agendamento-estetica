@@ -1,11 +1,10 @@
 // Serviços: o que aparece no link, com tempo, preço e ciclo de retorno.
 
 import * as api from '../data/api.js';
-import { formatDuration, formatInterval, formatPrice } from '../core/format.js';
+import { formatInterval, formatPrice } from '../core/format.js';
 import { returnMessage } from '../core/whatsapp.js';
 import { $, html, icon, showFieldErrors, toast } from './ui.js';
 
-const DURATIONS = [30, 45, 60, 90, 120, 150, 180, 240, 300, 360, 420, 480, 540, 600];
 const CYCLES = ['15d', '1m', '2m', '3m', '4m', '6m', '9m', '12m', '24m'];
 
 function cycleText(code) {
@@ -45,10 +44,11 @@ async function listView(root) {
           <li class="item item--sem-hora" data-servico="${s.id}">
             <div class="item__corpo">
               <p class="item__titulo">${s.name} ${s.active ? '' : html`<span class="selo selo--cancelado">${icon('ban')}fora do link</span>`}</p>
-              <p class="item__sub">${formatDuration(s.durationMin)} · ${s.priceFrom ? 'a partir de ' : ''}${formatPrice(s.priceCents)} · ${cycleText(s.returnInterval)}</p>
+              <p class="item__sub">${s.priceFrom ? 'a partir de ' : ''}${formatPrice(s.priceCents)} · ${cycleText(s.returnInterval)}</p>
             </div>
             <div class="item__acoes">
               <a class="btn btn--linha btn--pequeno" href="#/servicos/${s.id}">${icon('pencil')}Editar</a>
+              <button type="button" class="btn btn--texto btn--perigo btn--pequeno" data-excluir="${s.id}" data-nome="${s.name}" aria-label="Excluir ${s.name}">${icon('trash')}Excluir</button>
               <button type="button" class="btn btn--texto btn--icone" data-mover="-1" aria-label="Subir ${s.name} na tabela" ${i === 0 ? html`disabled` : ''}>${icon('chevron-up')}</button>
               <button type="button" class="btn btn--texto btn--icone" data-mover="1" aria-label="Descer ${s.name} na tabela" ${i === services.length - 1 ? html`disabled` : ''}>${icon('chevron-down')}</button>
             </div>
@@ -57,14 +57,38 @@ async function listView(root) {
   }
 
   box.addEventListener('click', async (event) => {
-    const button = event.target.closest('[data-mover]');
+    const button = event.target.closest('[data-mover], [data-excluir]');
     if (!button) return;
+    if (button.disabled) return;
+    if (button.dataset.excluir) {
+      if (!window.confirm(`Excluir o serviço “${button.dataset.nome}”? Esta ação não pode ser desfeita. Serviços com agendamentos ou retornos não podem ser excluídos.`)) return;
+      button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
+      try {
+        await api.deleteService(button.dataset.excluir);
+        await load();
+        toast('Serviço excluído.');
+        (box.querySelector('[data-excluir]') || root.querySelector('a[href="#/servicos/novo"]'))?.focus();
+      } catch (error) {
+        toast(error.message || 'Não deu para excluir. Tente de novo.', { duration: 10000 });
+      } finally {
+        button.disabled = false;
+        button.removeAttribute('aria-busy');
+      }
+      return;
+    }
     const id = button.closest('[data-servico]').dataset.servico;
     const label = button.getAttribute('aria-label');
-    await api.moveService(id, Number(button.dataset.mover));
-    await load();
-    const again = [...box.querySelectorAll('[data-mover]')].find((b) => b.getAttribute('aria-label') === label && !b.disabled);
-    again?.focus();
+    button.disabled = true;
+    try {
+      await api.moveService(id, Number(button.dataset.mover));
+      await load();
+      const again = [...box.querySelectorAll('[data-mover]')].find((b) => b.getAttribute('aria-label') === label && !b.disabled);
+      again?.focus();
+    } catch (error) {
+      toast(error.message || 'Não deu para mudar a ordem. Tente de novo.');
+      button.disabled = false;
+    }
   });
 
   await load();
@@ -75,7 +99,7 @@ async function editView(root, id) {
   const [services, { settings }] = await Promise.all([api.listServices(), api.getSettings()]);
   const isNew = id === 'novo';
   const service = isNew
-    ? { name: '', description: '', durationMin: 120, priceCents: undefined, priceFrom: true, returnInterval: '6m', returnAction: '', active: true }
+    ? { name: '', description: '', priceCents: undefined, priceFrom: true, returnInterval: '6m', returnAction: '', active: true }
     : services.find((s) => s.id === id);
   if (!service) {
     root.innerHTML = String(html`<section class="secao"><p class="vazio">Esse serviço não existe mais. <a href="#/servicos">Voltar para a lista</a></p></section>`);
@@ -99,19 +123,13 @@ async function editView(root, id) {
         </div>
         <div class="campo">
           <label for="s-desc">Descrição</label>
-          <textarea id="s-desc" name="description" rows="3" maxlength="200" placeholder="O que está incluído, em uma ou duas frases.">${service.description}</textarea>
+          <textarea id="s-desc" name="description" rows="6" maxlength="2000" aria-describedby="s-desc-ajuda" placeholder="Lavagem externa&#10;Aspiração interna">${service.description}</textarea>
+          <p class="campo__dica" id="s-desc-ajuda">Escreva um item por linha. Até 2.000 caracteres.</p>
         </div>
       </fieldset>
       <fieldset class="form__grupo">
-        <legend>Tempo e preço</legend>
+        <legend>Preço</legend>
         <div class="form__linha form__linha--2">
-          <div class="campo">
-            <label for="s-duracao">Duração</label>
-            <select id="s-duracao" name="durationMin">
-              ${[...new Set([...DURATIONS, service.durationMin])].sort((a, b) => a - b).map((m) => html`<option value="${m}" ${m === service.durationMin ? html`selected` : ''}>${formatDuration(m)}</option>`)}
-            </select>
-            <p class="campo__dica">Tempo que o carro ocupa a vaga. O link só mostra horários em que o serviço cabe.</p>
-          </div>
           <div class="campo">
             <label for="s-preco">Preço</label>
             <div class="prefixo"><span>R$</span><input id="s-preco" name="priceCents" inputmode="decimal" value="${priceInput(service.priceCents)}" placeholder="350"></div>
@@ -153,6 +171,10 @@ async function editView(root, id) {
   `);
 
   const form = $('#form-servico', root);
+  const description = $('#s-desc', root);
+  const resize = () => { description.style.height = 'auto'; description.style.height = `${Math.max(description.scrollHeight, 160)}px`; };
+  description.addEventListener('input', resize);
+  requestAnimationFrame(resize);
   const preview = () => {
     const data = new FormData(form);
     const name = data.get('name') || 'serviço';
@@ -179,7 +201,6 @@ async function editView(root, id) {
       id: isNew ? undefined : service.id,
       name: data.get('name'),
       description: data.get('description'),
-      durationMin: Number(data.get('durationMin')),
       priceCents,
       priceFrom: data.get('priceFrom') === 'on',
       returnInterval: data.get('returnInterval') || null,

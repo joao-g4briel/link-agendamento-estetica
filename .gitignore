@@ -7,3 +7,4 @@ node_modules/
 
 # Capturas de revisão do design (geradas localmente)
 .impeccable/review/
+.local/

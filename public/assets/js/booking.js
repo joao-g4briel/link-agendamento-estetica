@@ -2,9 +2,9 @@
 // O cliente escolhe só o dia; o carro chega a partir da abertura.
 
 import * as api from './data/api.js';
-import { addDays, nowMinutes, parseISODate, toMinutes, today } from './core/dates.js';
+import { addDays, nowMinutes, parseISODate, toMinutes, today, weekday } from './core/dates.js';
 import {
-  firstName, formatDateLong, formatDateShort, formatDuration, formatInterval, formatMonthYear,
+  firstName, formatDateLong, formatDateShort, formatInterval, formatMonthYear,
   formatPhone, formatPlate, formatPrice, formatRelativeDay, html, isValidPhone, MONTHS, raw,
   WEEKDAYS, WEEKDAYS_SHORT,
 } from './core/format.js';
@@ -22,6 +22,7 @@ const state = {
   date: null,
   time: null,
   submitting: false,
+  idempotencyKey: crypto.randomUUID(),
 };
 let availabilityRequest = 0;
 
@@ -36,14 +37,17 @@ function hourLabel(hhmm) {
 }
 
 function openingLine(hours) {
-  const wd = new Date().getDay();
+  const wd = weekday(today());
   const todayHours = hours?.[wd];
-  if (todayHours?.open && nowMinutes() < toMinutes(todayHours.close)) {
-    return `Aberto hoje das ${hourLabel(todayHours.open)} às ${hourLabel(todayHours.close)}`;
+  const blocked = date => state.profile?.closedDates?.some(b => date >= b.from && date <= (b.to || b.from));
+  if (!blocked(today()) && todayHours?.open && nowMinutes() < toMinutes(todayHours.close)) {
+    if (nowMinutes() < toMinutes(todayHours.open)) return `Abre hoje às ${hourLabel(todayHours.open)}`;
+    if (todayHours.breakStart && nowMinutes() >= toMinutes(todayHours.breakStart) && nowMinutes() < toMinutes(todayHours.breakEnd)) return `Em pausa. Volta às ${hourLabel(todayHours.breakEnd)}`;
+    return `Aberto agora · até ${hourLabel(todayHours.close)}`;
   }
   for (let i = 1; i <= 7; i++) {
     const next = hours?.[(wd + i) % 7];
-    if (next?.open) {
+    if (next?.open && !blocked(addDays(today(), i))) {
       const when = i === 1 ? 'amanhã' : WEEKDAYS[(wd + i) % 7];
       return `Fechado agora. Abre ${when} às ${hourLabel(next.open)}`;
     }
@@ -78,7 +82,8 @@ function addressHTML(address) {
 function renderHeader() {
   const { shop, nextFree } = state.profile;
   document.title = `${shop.name} · Agende seu horário`;
-  $('#aviso-exemplo').hidden = !shop.isExample;
+  $('#aviso-exemplo').hidden = !shop.isExample && !state.profile.local;
+  if (state.profile.local) $('#aviso-exemplo').textContent = 'Validação local · dados de teste separados da produção';
   $('#letreiro').removeAttribute('aria-busy');
   $('#logo').alt = shop.tagline ? `${shop.name} — ${shop.tagline}` : shop.name;
 
@@ -113,7 +118,7 @@ function renderHeader() {
 /** Linhas do quadro de horário: dias seguidos com o mesmo horário viram uma linha. */
 function hoursBoard(hours) {
   const order = [1, 2, 3, 4, 5, 6, 0];
-  const label = (h) => (h?.open ? `${hourLabel(h.open)} às ${hourLabel(h.close)}` : 'fechado');
+  const label = (h) => (h?.open ? `${hourLabel(h.open)} às ${hourLabel(h.close)}${h.breakStart ? ` · pausa ${hourLabel(h.breakStart)}–${hourLabel(h.breakEnd)}` : ''}` : 'fechado');
   const rows = [];
   for (const wd of order) {
     const text = label(hours?.[wd]);
@@ -148,8 +153,8 @@ function renderServices() {
         <span class="servico__nome">${s.name}</span>
         <span class="servico__pontos" aria-hidden="true"></span>
         <span class="servico__preco">${s.priceFrom ? html`<small>a partir de</small>` : ''}${formatPrice(s.priceCents)}</span>
-        <span class="servico__meta">${formatDuration(s.durationMin)} de serviço${s.returnInterval ? ` · ${cycleLabel(s.returnInterval)}` : ''}</span>
-        ${s.description ? html`<span class="servico__desc">${s.description}</span>` : ''}
+        ${s.returnInterval ? html`<span class="servico__meta">${cycleLabel(s.returnInterval)}</span>` : ''}
+        ${s.description ? html`<span class="servico__desc" role="list">${s.description.split(/\r?\n/).map(line => line.trim().replace(/^[-•]\s*/, '')).filter(Boolean).map(line => html`<span role="listitem">${line}</span>`)}</span>` : ''}
       </button>
     </li>`).join('');
 }
@@ -192,6 +197,7 @@ function revealStep(selector, { scroll = true } = {}) {
 }
 
 async function selectService(id, { scroll = true } = {}) {
+  state.idempotencyKey = crypto.randomUUID();
   const service = state.profile.services.find((s) => s.id === id);
   if (!service) return;
   state.service = service;
@@ -206,7 +212,7 @@ async function selectService(id, { scroll = true } = {}) {
   $('#etapa-dados').hidden = true;
 
   $('#ajuda-quando').textContent =
-    `${service.name} leva ${formatDuration(service.durationMin)}. Escolha o dia e traga o carro a partir da abertura.`;
+    `${service.name}. Escolha o dia e confira a orientação de chegada.`;
   $('#dias').classList.add('dias--carregando');
   $('#dias').setAttribute('aria-busy', 'true');
   $('#dias').innerHTML = Array.from({ length: 7 }, () =>
@@ -291,6 +297,7 @@ function renderDayNote(message = '') {
 }
 
 function selectDay(date) {
+  state.idempotencyKey = crypto.randomUUID();
   const day = state.days.find((d) => d.date === date);
   if (!day || !day.slots.length) return;
   state.date = date;
@@ -309,7 +316,7 @@ function renderSummary() {
   $('#resumo').innerHTML = html`
     <p class="resumo__servico">${s.name}</p>
     <p class="resumo__quando">${capitalize(formatDateLong(state.date))}</p>
-    <p>Chegada a partir das ${hourLabel(state.time)} · leva ${formatDuration(s.durationMin)} · ${s.priceFrom ? 'a partir de ' : ''}${formatPrice(s.priceCents)}, pago na estética</p>
+    <p>Chegada a partir das ${hourLabel(state.time)} · ${s.priceFrom ? 'a partir de ' : ''}${formatPrice(s.priceCents)}, pago na estética</p>
   `;
 }
 
@@ -402,6 +409,7 @@ async function submit(event) {
     plate: fields.plate().value,
     notes: fields.notes().value,
     returnToken: state.invite && !state.invite.alreadyBooked ? state.invite.token : undefined,
+    idempotencyKey: state.idempotencyKey,
   };
   const errors = clientValidate(data);
   showErrors(errors);
@@ -415,10 +423,12 @@ async function submit(event) {
 
   try {
     const result = await api.createBooking(data);
-    rememberClient({ name: data.name, phone: data.phone, vehicle: data.vehicle, plate: data.plate });
+    if ($('#lembrar-dados').checked) rememberClient({ name: data.name, phone: data.phone, vehicle: data.vehicle, plate: data.plate });
+    else { try { localStorage.removeItem(CLIENT_KEY); } catch {} }
     renderPainted(result);
   } catch (error) {
     if (error.code === 'SLOT_TAKEN') {
+      state.idempotencyKey = crypto.randomUUID();
       state.time = null;
       $('#etapa-dados').hidden = true;
       $('#etapa-quando').classList.remove('feita');
@@ -502,7 +512,7 @@ function renderPainted(result) {
       <span class="pintado__hora pintado__hora--chegada tinta" style="--i:2">a partir das ${hourLabel(a.start)}</span>
     </h2>
     <dl class="pintado__ficha">
-      <div><dt>Serviço</dt><dd>${service.name}, leva ${formatDuration(a.durationMin)}</dd></div>
+      <div><dt>Serviço</dt><dd>${service.name}</dd></div>
       <div><dt>Carro</dt><dd>${a.vehicle}${a.plate ? ` · ${a.plate}` : ''}</dd></div>
       ${shop.address ? html`<div><dt>Onde</dt><dd>${addressHTML(shop.address)}</dd></div>` : ''}
       <div><dt>Código</dt><dd class="pintado__codigo">${a.code}</dd></div>
@@ -516,6 +526,7 @@ function renderPainted(result) {
       </div>
     </div>
     <div class="pintado__mais">
+      ${a.manageToken ? html`<a href="?reserva=${a.manageToken}">Consultar, remarcar ou cancelar este agendamento</a>` : ''}
       <a href="${icsFile(result)}" download="agendamento-${a.code}.ics">Usa iPhone ou Outlook? Baixe o arquivo da agenda</a>
       <button type="button" class="link-giz" data-acao="outro">Agendar outro serviço</button>
     </div>
@@ -535,6 +546,7 @@ function renderPainted(result) {
 }
 
 function startOver() {
+  state.idempotencyKey = crypto.randomUUID();
   state.service = null;
   state.date = null;
   state.time = null;
@@ -557,6 +569,12 @@ function startOver() {
 // Eventos
 
 function bindEvents() {
+  $('#ficha').addEventListener('input', () => { if (!state.submitting) state.idempotencyKey = crypto.randomUUID(); });
+  $('#limpar-dados').addEventListener('click', () => {
+    try { localStorage.removeItem(CLIENT_KEY); } catch {}
+    Object.values(fields).forEach(get => { get().value = ''; });
+    $('#lembrar-dados').checked = false;
+  });
   $('#tabela').addEventListener('click', (event) => {
     const button = event.target.closest('.servico');
     if (button && button.dataset.id) selectService(button.dataset.id);
@@ -603,6 +621,7 @@ async function init() {
   bindEvents();
   const params = new URLSearchParams(window.location.search);
   const token = params.get('retorno');
+  const reservation = params.get('reserva');
   const preset = params.get('servico');
   try {
     const [profile, invite] = await Promise.all([
@@ -614,6 +633,8 @@ async function init() {
     renderHeader();
     renderServices();
     renderFooter();
+
+    if (reservation) { await renderManaged(reservation); return; }
 
     if (profile.shop.bookingOpen === false) {
       // Agenda fechada: só a tabela de serviços, sem escolher horário.
@@ -627,6 +648,35 @@ async function init() {
   } catch {
     renderLoadError();
   }
+}
+
+async function renderManaged(token) {
+  $('#agendar').hidden = true;
+  const section = $('#pintado');
+  section.hidden = false;
+  try {
+    const result = await api.getManagedBooking(token);
+    const a = result.appointment;
+    const days = result.canChange ? await api.getAvailability(a.serviceId) : [];
+    section.innerHTML = html`<h2 class="etapa__titulo" id="pintado-titulo">Seu agendamento</h2>
+      <p>${result.service.name} · ${formatDateLong(a.date)} · chegada ${a.start}</p>
+      <p>${a.vehicle} · situação: ${a.status}</p>
+      <p>${result.cancelNotice}</p>
+      ${result.canChange ? html`<form id="gerir-reserva" class="ficha"><div class="campo"><label for="nova-data">Remarcar para</label>
+        <select id="nova-data" name="date">${days.filter(d => d.slots.length).map(d => html`<option value="${d.date}">${formatDateLong(d.date)}</option>`)}</select></div>
+        <button class="placa-botao" type="submit">Remarcar</button>
+        <button class="botao-giz" type="button" id="cancelar-reserva">Cancelar agendamento</button></form>` : ''}
+      <p id="gerir-status" role="status"></p><a class="link-giz" href="./">Voltar aos serviços</a>`;
+    const status = $('#gerir-status');
+    const form = $('#gerir-reserva');
+    async function change(patch) {
+      form.querySelectorAll('button').forEach(b => b.disabled = true);
+      try { await api.manageBooking(token, patch); await renderManaged(token); }
+      catch (error) { status.textContent = error.message; form.querySelectorAll('button').forEach(b => b.disabled = false); }
+    }
+    form?.addEventListener('submit', event => { event.preventDefault(); change({ action: 'remarcar', date: form.elements.date.value }); });
+    $('#cancelar-reserva')?.addEventListener('click', () => { if (confirm('Cancelar este agendamento e liberar a vaga?')) change({ action: 'cancelar' }); });
+  } catch (error) { section.innerHTML = html`<h2 id="pintado-titulo">Não foi possível abrir a reserva</h2><p>${error.message}</p><a href="./" class="link-giz">Voltar ao site</a>`; }
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

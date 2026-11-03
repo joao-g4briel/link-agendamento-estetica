@@ -404,7 +404,14 @@ a { color: inherit; text-underline-offset: 0.22em; text-decoration-thickness: 1p
   max-width: 60ch;
   font-size: 0.9375rem;
   line-height: 1.45;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
+
+.servico__desc [role='listitem'] { display: block; margin-top: 4px; padding-left: 1em; text-indent: -1em; }
+.servico__desc [role='listitem']::before { content: '• '; }
+.check-publica { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.check-publica input { width: 22px; height: 22px; accent-color: var(--ouro); }
 
 .servico[aria-pressed='true'] {
   background: var(--ouro-placa);

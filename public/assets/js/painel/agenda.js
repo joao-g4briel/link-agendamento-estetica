@@ -27,13 +27,15 @@ function dayBlock(day, settings, limit) {
       <div class="secao__cabeca">
         <h2 class="secao__titulo" id="d-${day.date}">${capitalize(formatDateLong(day.date))} ${isToday ? html`<span class="selo selo--hoje">hoje</span>` : ''}</h2>
         ${day.hours && !day.block ? html`
-          <span class="carga" title="${Math.round(day.load.ratio * 100)}% das vagas ocupadas">
-            <span class="carga__texto">${limit ? `${active.length} de ${limit} carros` : `${active.length} ${active.length === 1 ? 'carro' : 'carros'}`} · ${hourLabel(day.hours.open)}–${hourLabel(day.hours.close)}</span>
+          <span class="carga" title="${day.load.cars} carros reservados no dia">
+            <span class="carga__texto">${limit ? `${day.load.cars} de ${limit} carros` : `${day.load.cars} carros`} · ${hourLabel(day.hours.open)}–${hourLabel(day.hours.close)}</span>
             ${day.load.full && !past ? html`<span class="selo selo--hoje">lotado</span>` : ''}
             <span class="carga__barra" aria-hidden="true"><span style="width:${Math.round(day.load.ratio * 100)}%"></span></span>
           </span>` : ''}
       </div>
-      ${status || html`<ul class="lista" role="list">${active.map((a) => appointmentRow(a, { settings }))}</ul>`}
+      ${status || ''}
+      ${active.length ? html`<ul class="lista" role="list">${active.map((a) => appointmentRow(a, { settings }))}</ul>` : ''}
+      ${day.items.some(a => a.status === 'cancelado') ? html`<details class="dobra"><summary>Cancelados (${day.items.filter(a => a.status === 'cancelado').length})</summary><ul class="lista" role="list">${day.items.filter(a => a.status === 'cancelado').map(a => appointmentRow(a, { settings }))}</ul></details>` : ''}
     </section>`;
 }
 

@@ -1,3 +1,14 @@
+# Revisão da auditoria: validação local
+
+Use `npm run local` para validar as alterações sem acessar o banco de produção. O site fica em `http://127.0.0.1:5173/` e o painel em `http://127.0.0.1:5173/painel/`. A senha vem de `PAINEL_SENHA` no `.env.local`. Esse comando força armazenamento local em `.local/validacao.json` e prepara dados fictícios descartáveis.
+
+Execute `npm test` para os testes de regressão. Com o servidor rodando, `node --env-file-if-exists=.env.local scripts/validar-local.mjs` valida o fluxo por HTTP. O roteiro visual e o prompt para o Codex Desktop estão em [VALIDACAO-DESKTOP.md](VALIDACAO-DESKTOP.md).
+
+Antes de publicar esta revisão, execute e valide a migração aditiva de `db/schema.sql` em PostgreSQL de homologação. A migração torna a duração opcional, cria identidade por veículo, idempotência, tokens de gestão, eventos, espera e armazenamento de sessões/limites. Somente depois de validá-la planeje a aplicação no banco de produção. Nenhuma migração remota foi executada nesta revisão.
+
+As instruções anteriores abaixo descrevem a base original; para os fluxos atuais consulte também “Implementação desta revisão” em [AUDITORIA.md](AUDITORIA.md).
+
+
 # HC Estética Automotiva — link de agendamento
 
 Link para a bio do Instagram da **HC Estética Automotiva** (Rua Irajá, 236 · Cidade Tabajara, Olinda-PE · WhatsApp (81) 99675-0258 · @hc.esteticar): o cliente escolhe o serviço e o dia (sem escolher horário: traz o carro a partir da abertura) e o agendamento cai direto na agenda. Quando o serviço é concluído, o sistema marca quando aquele carro deve voltar (renovar a vitrificação, nova higienização) e, no dia, coloca o cliente na fila de retornos do painel com a mensagem de WhatsApp pronta.

@@ -20,7 +20,7 @@ export const SETTINGS = {
   slotStep: 30,
   minNoticeMinutes: 120,
   horizonDays: 30,
-  autoComplete: true,
+  autoComplete: false,
   hours: {
     0: null,
     1: SEMANA, 2: SEMANA, 3: SEMANA, 4: SEMANA, 5: SEMANA,
@@ -34,12 +34,12 @@ export const SETTINGS = {
 };
 
 export const SERVICES = [
-  ['svc-lavagem', 'Lavagem detalhada', 'Lavagem técnica com descontaminação leve, rodas, caixas de roda e acabamento dos plásticos.', 120, 12000, true, '1m', 'fazer a lavagem de manutenção'],
-  ['svc-higienizacao', 'Higienização interna', 'Bancos, carpete, teto e painel limpos a fundo, com extração e secagem.', 240, 35000, true, '6m', 'fazer uma nova higienização'],
-  ['svc-vitrificacao', 'Vitrificação de pintura', 'Polimento e camada cerâmica que protege a pintura e deixa a lavagem mais fácil por meses.', 540, 150000, true, '12m', 'renovar a vitrificação'],
-  ['svc-polimento', 'Polimento técnico', 'Tira riscos finos e marcas de lavagem e devolve brilho e profundidade à pintura.', 360, 65000, true, '12m', 'revisar o polimento'],
-  ['svc-couro', 'Hidratação de couro', 'Limpeza e hidratação dos bancos de couro para não ressecar nem trincar.', 120, 22000, false, '4m', 'hidratar o couro de novo'],
-  ['svc-oxi', 'Oxi-sanitização', 'Tira odores, fungos e bactérias do ar-condicionado e do interior.', 60, 12000, false, '6m', 'repetir a oxi-sanitização'],
-].map(([id, name, description, durationMin, priceCents, priceFrom, returnInterval, returnAction], order) => ({
-  id, name, description, durationMin, priceCents, priceFrom, returnInterval, returnAction, active: true, order,
+  ['svc-lavagem', 'Lavagem detalhada', 'Lavagem técnica com descontaminação leve, rodas, caixas de roda e acabamento dos plásticos.', 12000, true, '1m', 'fazer a lavagem de manutenção'],
+  ['svc-higienizacao', 'Higienização interna', 'Bancos, carpete, teto e painel limpos a fundo, com extração e secagem.', 35000, true, '6m', 'fazer uma nova higienização'],
+  ['svc-vitrificacao', 'Vitrificação de pintura', 'Polimento e camada cerâmica que protege a pintura e deixa a lavagem mais fácil por meses.', 150000, true, '12m', 'renovar a vitrificação'],
+  ['svc-polimento', 'Polimento técnico', 'Tira riscos finos e marcas de lavagem e devolve brilho e profundidade à pintura.', 65000, true, '12m', 'revisar o polimento'],
+  ['svc-couro', 'Hidratação de couro', 'Limpeza e hidratação dos bancos de couro para não ressecar nem trincar.', 22000, false, '4m', 'hidratar o couro de novo'],
+  ['svc-oxi', 'Oxi-sanitização', 'Tira odores, fungos e bactérias do ar-condicionado e do interior.', 12000, false, '6m', 'repetir a oxi-sanitização'],
+].map(([id, name, description, priceCents, priceFrom, returnInterval, returnAction], order) => ({
+  id, name, description, priceCents, priceFrom, returnInterval, returnAction, active: true, order,
 }));

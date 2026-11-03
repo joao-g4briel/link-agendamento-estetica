@@ -5,7 +5,7 @@ import * as api from '../data/api.js';
 import { today } from '../core/dates.js';
 import { formatDateShort, formatPhone } from '../core/format.js';
 import { DEFAULT_RETURN_TEMPLATE, fillTemplate } from '../core/whatsapp.js';
-import { $, $$, html, icon, showFieldErrors, toast } from './ui.js';
+import { $, $$, html, icon, showFieldErrors, toast, bindSubmit } from './ui.js';
 
 const DAYS = [
   [1, 'Segunda'], [2, 'Terça'], [3, 'Quarta'], [4, 'Quinta'], [5, 'Sexta'], [6, 'Sábado'], [0, 'Domingo'],
@@ -94,7 +94,7 @@ export default async function ajustes(root, { params }) {
 
       <form class="form__grupo" id="f-horas" novalidate aria-labelledby="t-horas">
         <h2 class="secao__titulo" id="t-horas">Funcionamento</h2>
-        <p class="campo__dica">Os horários de chegada do carro. A pausa só bloqueia chegadas: um serviço longo pode atravessar o almoço.</p>
+        <p class="campo__dica">Defina os horários de chegada. Durante a pausa não são aceitas chegadas.</p>
         <div class="horas">${hoursRows(settings.hours)}</div>
         <div class="form__acoes" style="padding:0"><button class="btn btn--primario" type="submit">${icon('check')}Salvar horários</button></div>
       </form>
@@ -102,11 +102,6 @@ export default async function ajustes(root, { params }) {
       <form class="form__grupo" id="f-agenda" novalidate aria-labelledby="t-agenda">
         <h2 class="secao__titulo" id="t-agenda">Regras da agenda</h2>
         <div class="form__linha form__linha--2">
-          <div class="campo">
-            <label for="a-vagas">Carros ao mesmo tempo</label>
-            <input id="a-vagas" name="capacity" type="number" inputmode="numeric" min="1" max="12" value="${settings.capacity}">
-            <p class="campo__dica">Quantas vagas ou boxes você atende juntos.</p>
-          </div>
           <div class="campo">
             <label for="a-limite">Limite de carros por dia</label>
             <input id="a-limite" name="maxCarsPerDay" type="number" inputmode="numeric" min="0" max="50" value="${settings.maxCarsPerDay || 0}">
@@ -125,8 +120,7 @@ export default async function ajustes(root, { params }) {
             <select id="a-frente" name="horizonDays">${HORIZON.map((d) => opt(d, `os próximos ${d} dias`, settings.horizonDays))}</select>
           </div>
         </div>
-        <label class="check"><input type="checkbox" name="autoComplete" ${settings.autoComplete ? html`checked` : ''}>
-          <span>Concluir sozinho os carros de dias que já passaram<small>Assim o retorno é marcado mesmo se você esquecer de tocar em Concluir. Dá para corrigir depois para “não veio”.</small></span></label>
+        <p class="campo__dica">Atendimentos de dias anteriores ficam na fila “Para revisar”. O retorno só é criado quando você confirma a conclusão.</p>
         <div class="form__acoes" style="padding:0"><button class="btn btn--primario" type="submit">${icon('check')}Salvar regras</button></div>
       </form>
 
@@ -202,7 +196,7 @@ export default async function ajustes(root, { params }) {
   });
 
   // A estética
-  $('#f-estetica', root).addEventListener('submit', async (event) => {
+  bindSubmit($('#f-estetica', root), async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
     const data = Object.fromEntries(new FormData(form));
@@ -224,7 +218,7 @@ export default async function ajustes(root, { params }) {
     $('.horas__campos', row).hidden = !event.target.checked;
     $('.horas__fechado', row).hidden = event.target.checked;
   });
-  hoursForm.addEventListener('submit', async (event) => {
+  bindSubmit(hoursForm, async (event) => {
     event.preventDefault();
     const data = new FormData(hoursForm);
     const hours = {};
@@ -251,34 +245,32 @@ export default async function ajustes(root, { params }) {
   });
 
   // Regras da agenda
-  $('#f-agenda', root).addEventListener('submit', async (event) => {
+  bindSubmit($('#f-agenda', root), async (event) => {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const capacity = Math.min(12, Math.max(1, Number(data.get('capacity')) || 1));
+    const form = event.currentTarget;
+    const data = new FormData(form);
     const maxCarsPerDay = Math.min(50, Math.max(0, Math.round(Number(data.get('maxCarsPerDay')) || 0)));
     await api.saveSettings({
-      capacity,
       maxCarsPerDay,
       slotStep: Number(data.get('slotStep')),
       minNoticeMinutes: Number(data.get('minNoticeMinutes')),
       horizonDays: Number(data.get('horizonDays')),
-      autoComplete: data.get('autoComplete') === 'on',
     });
-    event.currentTarget.querySelector('[name="capacity"]').value = capacity;
-    event.currentTarget.querySelector('[name="maxCarsPerDay"]').value = maxCarsPerDay;
+    form.querySelector('[name="maxCarsPerDay"]').value = maxCarsPerDay;
     toast('Regras da agenda salvas.');
   });
 
   // Folgas
   const blocksBox = $('#lista-folgas', root);
-  $('#f-folga', root).addEventListener('submit', async (event) => {
+  bindSubmit($('#f-folga', root), async (event) => {
     event.preventDefault();
-    const data = Object.fromEntries(new FormData(event.currentTarget));
+    const form = event.currentTarget;
+    const data = Object.fromEntries(new FormData(form));
     try {
       const { affected } = await api.addBlock(data);
       const fresh = await api.getSettings();
       blocksBox.innerHTML = String(blocksList(fresh.blocks));
-      event.currentTarget.reset();
+      form.reset();
       toast(affected
         ? `Folga marcada. Atenção: ${affected} ${affected === 1 ? 'carro já estava agendado' : 'carros já estavam agendados'} nesse período.`
         : 'Folga marcada. Esses dias somem do link.');
@@ -289,9 +281,10 @@ export default async function ajustes(root, { params }) {
   blocksBox.addEventListener('click', async (event) => {
     const button = event.target.closest('[data-remover]');
     if (!button) return;
-    await api.removeBlock(button.dataset.remover);
-    blocksBox.innerHTML = String(blocksList((await api.getSettings()).blocks));
-    toast('Folga removida.');
+    button.disabled = true;
+    try { await api.removeBlock(button.dataset.remover); blocksBox.innerHTML = String(blocksList((await api.getSettings()).blocks)); toast('Folga removida.'); }
+    catch (error) { toast(error.message); }
+    finally { button.disabled = false; }
   });
 
   // Mensagem
@@ -319,7 +312,7 @@ export default async function ajustes(root, { params }) {
     msgField.value = DEFAULT_RETURN_TEMPLATE;
     renderPreview();
   });
-  msgForm.addEventListener('submit', async (event) => {
+  bindSubmit(msgForm, async (event) => {
     event.preventDefault();
     if (!msgField.value.includes('{link}')) {
       toast('Inclua {link} na mensagem: é por ele que o cliente agenda o retorno.');
@@ -341,7 +334,7 @@ export default async function ajustes(root, { params }) {
       toast('Selecionei o link; copie com o menu do celular.');
     }
   });
-  $('#f-link', root).addEventListener('submit', async (event) => {
+  bindSubmit($('#f-link', root), async (event) => {
     event.preventDefault();
     const value = $('#a-link', root).value.trim().replace(/\/$/, '');
     if (value && !/^https?:\/\//.test(value)) {

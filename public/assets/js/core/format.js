@@ -3,7 +3,8 @@ import { diffDays, parseInterval, parseISODate, pad, today } from './dates.js';
 const money = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
   currency: 'BRL',
-  maximumFractionDigits: 0,
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
 });
 
 export const WEEKDAYS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
@@ -15,7 +16,7 @@ export const MONTHS = [
 export const MONTHS_SHORT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
 export function formatPrice(cents) {
-  return money.format(cents / 100);
+  return Number(cents) % 100 === 0 ? money.format(cents / 100) : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cents / 100);
 }
 
 export function formatDuration(minutes) {

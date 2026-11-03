@@ -53,6 +53,8 @@ async function call(path, { method = 'GET', body, query } = {}) {
 export const getPublicProfile = () => call('perfil');
 export const getAvailability = (serviceId, from, days) => call('horarios', { query: { servico: serviceId, de: from, dias: days } });
 export const getReturnInvite = (token) => call(`retorno/${encodeURIComponent(token)}`);
+export const getManagedBooking = token => call(`reserva/${encodeURIComponent(token)}`);
+export const manageBooking = (token, body) => call(`reserva/${encodeURIComponent(token)}`, { method: 'PATCH', body });
 export const createBooking = (input, { source = 'link', force = false } = {}) =>
   source === 'painel'
     ? call('painel/agendamentos', { method: 'POST', body: { dados: input, encaixe: force } })
@@ -69,17 +71,27 @@ export const logout = () => call('logout', { method: 'POST' });
 // Painel
 
 export const getHome = () => call('painel/inicio');
+export const getAppointment = id => call(`painel/agendamentos/${id}`);
+export const editAppointment = (id, dados, encaixe = false) => call(`painel/agendamentos/${id}`, { method: 'PUT', body: { dados, encaixe } });
+export const saveCustomer = (id, body) => call(`painel/clientes/${id}`, { method: 'PATCH', body });
+export const anonymizeCustomer = id => call(`painel/clientes/${id}`, { method: 'DELETE' });
+export const getOperations = (from, to) => call('painel/operacao', { query: { de: from, ate: to } });
+export const exportData = () => call('painel/exportar');
+export const saveWaitlist = body => call('painel/espera', { method: 'POST', body });
+export const closeWaitlist = id => call(`painel/espera/${id}`, { method: 'DELETE' });
 export const search = (q) => call('painel/busca', { query: { q } });
-export const listCustomers = () => call('painel/clientes');
+export const listCustomers = (offset = 0, q = '') => call('painel/clientes', { query: { offset, q } });
+export const getCustomer = id => call(`painel/clientes/${id}`);
 export const getAgenda = (from, days = 7) => call('painel/agenda', { query: { de: from, dias: days } });
 export const setAppointmentStatus = (id, status) => call(`painel/agendamentos/${id}`, { method: 'PATCH', body: { status } });
-export const getSlotsForPanel = (serviceId, date) => call('painel/horarios', { query: { servico: serviceId, data: date } });
+export const getSlotsForPanel = (serviceId, date, ignoreId) => call('painel/horarios', { query: { servico: serviceId, data: date, ignorar: ignoreId } });
 export const listReturns = () => call('painel/retornos');
 export const getReturnMessageData = (id) => call(`painel/retornos/${id}`);
 export const markReturnNotified = (id) => call(`painel/retornos/${id}/avisado`, { method: 'POST' });
 export const snoozeReturn = (id, days = 7) => call(`painel/retornos/${id}/adiar`, { method: 'POST', body: { dias: days } });
 export const setReturnStatus = (id, status) => call(`painel/retornos/${id}`, { method: 'PATCH', body: { status } });
 export const listServices = () => call('painel/servicos');
+export const deleteService = (id) => call(`painel/servicos/${encodeURIComponent(id)}`, { method: 'DELETE' });
 export const saveService = (input) => call('painel/servicos', { method: 'PUT', body: input });
 export const moveService = (id, direction) => call(`painel/servicos/${id}/mover`, { method: 'POST', body: { direcao: direction } });
 export const addBlock = (input) => call('painel/folgas', { method: 'POST', body: input });

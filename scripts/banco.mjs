@@ -14,9 +14,9 @@ if (rows[0].n === 0) {
   await rawQuery('insert into config (id, settings) values (1, $1)', [SETTINGS]);
   for (const s of SERVICES) {
     await rawQuery(
-      `insert into servicos (id, name, description, duration_min, price_cents, price_from, return_interval, return_action, active, ordem)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) on conflict (id) do nothing`,
-      [s.id, s.name, s.description, s.durationMin, s.priceCents, s.priceFrom, s.returnInterval, s.returnAction, s.active, s.order],
+      `insert into servicos (id, name, description, price_cents, price_from, return_interval, return_action, active, ordem)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9) on conflict (id) do nothing`,
+      [s.id, s.name, s.description, s.priceCents, s.priceFrom, s.returnInterval, s.returnAction, s.active, s.order],
     );
   }
   console.log(`Configuração da ${SETTINGS.name} e ${SERVICES.length} serviços de exemplo inseridos.`);

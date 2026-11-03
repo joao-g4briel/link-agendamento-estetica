@@ -1,7 +1,7 @@
 // Painel da estética: navegação por hash e troca de telas.
 
 import * as api from '../data/api.js';
-import { $, html, icon } from './ui.js';
+import { $, html, icon, toast } from './ui.js';
 import inicio from './inicio.js';
 import agenda from './agenda.js';
 import retornos from './retornos.js';
@@ -9,6 +9,8 @@ import servicos from './servicos.js';
 import ajustes from './ajustes.js';
 import novo from './novo.js';
 import clientes from './clientes.js';
+import operacao from './operacao.js';
+import { createViewHost } from './view-host.js';
 
 const TABS = [
   { route: '', label: 'Início', icon: 'house' },
@@ -18,10 +20,10 @@ const TABS = [
   { route: 'ajustes', label: 'Ajustes', icon: 'sliders-horizontal' },
 ];
 
-const VIEWS = { '': inicio, agenda, retornos, servicos, ajustes, novo, clientes };
-const TAB_OF = { novo: 'agenda', clientes: '' };
+const VIEWS = { '': inicio, agenda, retornos, servicos, ajustes, novo, clientes, operacao };
+const TAB_OF = { novo: 'agenda', clientes: '', operacao: 'ajustes' };
 
-let current = { cleanup: null, refresh: null };
+const viewHost = createViewHost($('#conteudo'));
 let badge = 0;
 
 function parseHash() {
@@ -54,13 +56,7 @@ async function updateChrome() {
 async function render() {
   const { route, rest, params } = parseHash();
   renderTabs(route);
-  current.cleanup?.();
-  current = { cleanup: null, refresh: null };
-  const root = $('#conteudo');
-  try {
-    const result = await VIEWS[route](root, { params, rest });
-    if (result) current = { cleanup: result.cleanup || null, refresh: result.refresh || null };
-  } catch (error) {
+  const shown = await viewHost.show((root) => VIEWS[route](root, { params, rest }), (error, root) => {
     if (error.code === 'UNAUTHORIZED') {
       renderLogin();
       return;
@@ -72,8 +68,10 @@ async function render() {
         <p class="secao__nota">${error.message || 'Erro inesperado.'}</p>
         <button type="button" class="btn btn--primario" id="recarregar">Tentar de novo</button>
       </div>`);
-    $('#recarregar').addEventListener('click', render);
-  }
+    $('#recarregar', root).addEventListener('click', render);
+  });
+  if (!shown) return;
+  const root = $('#conteudo');
   window.scrollTo(0, 0);
   if (document.activeElement && document.activeElement !== document.body && !root.contains(document.activeElement)) {
     root.focus({ preventScroll: true });
@@ -85,12 +83,17 @@ let pending;
 api.subscribe(() => {
   clearTimeout(pending);
   pending = setTimeout(() => {
-    current.refresh?.();
+    viewHost.refresh().catch((error) => { if (error.code === 'UNAUTHORIZED') renderLogin(); else toast(error.message || 'Não deu para atualizar esta tela.'); });
     updateChrome();
   }, 80);
 });
 
 window.addEventListener('hashchange', render);
+const refreshActive = () => {
+  if (document.visibilityState === 'visible' && !document.body.classList.contains('sem-sessao')) viewHost.refresh().catch(error => { if (error.code === 'UNAUTHORIZED') renderLogin(); else toast(error.message || 'Não deu para atualizar.'); });
+};
+document.addEventListener('visibilitychange', refreshActive);
+setInterval(refreshActive, 45000);
 
 // Fecha menus abertos ao clicar fora ou apertar Esc.
 document.addEventListener('click', (event) => {
@@ -110,7 +113,7 @@ document.addEventListener('keydown', (event) => {
 function renderLogin(message = '') {
   document.body.classList.add('sem-sessao');
   const logo = new URL('../../img/logo-480.webp', import.meta.url).href;
-  const root = $('#conteudo');
+  const root = viewHost.mount();
   root.innerHTML = String(html`
     <div class="faixa entrada">
       <img class="entrada__logo" src="${logo}" width="480" height="480" alt="HC Estética Automotiva">
@@ -146,5 +149,5 @@ function renderLogin(message = '') {
 }
 
 api.getSession()
-  .then(({ logado }) => (logado ? render() : renderLogin()))
+  .then(({ logado, local }) => { $('#ambiente-local').hidden = !local; return logado ? render() : renderLogin(); })
   .catch(() => renderLogin('Não deu para falar com o servidor. Confira a internet.'));

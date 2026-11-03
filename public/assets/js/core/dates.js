@@ -14,7 +14,13 @@ export function parseISODate(iso) {
 }
 
 export function today() {
-  return toISODate(new Date());
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+  const get = key => parts.find(p => p.type === key).value;
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+
+export function isISODate(value) {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && toISODate(parseISODate(value)) === value;
 }
 
 export function addDays(iso, days) {
@@ -67,8 +73,8 @@ export function fromMinutes(total) {
 }
 
 export function nowMinutes() {
-  const d = new Date();
-  return d.getHours() * 60 + d.getMinutes();
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
+  return Number(parts.find(p => p.type === 'hour').value) * 60 + Number(parts.find(p => p.type === 'minute').value);
 }
 
 /** Início da semana (segunda-feira) que contém `iso`. */

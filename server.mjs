@@ -69,7 +69,7 @@ createServer(async (req, res) => {
     'cache-control': 'no-cache',
   });
   res.end(body);
-}).listen(port, () => {
+}).listen(port, '127.0.0.1', () => {
   console.log(`Link de agendamento:  http://localhost:${port}/`);
   console.log(`Painel da estética:   http://localhost:${port}/painel/`);
 });

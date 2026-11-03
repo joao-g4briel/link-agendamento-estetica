@@ -10,6 +10,8 @@
   "scripts": {
     "start": "node --env-file-if-exists=.env.local server.mjs",
     "dev": "node --env-file-if-exists=.env.local server.mjs",
+    "local": "node --env-file-if-exists=.env.local scripts/local.mjs",
+    "test": "node --test --test-isolation=none scripts/servicos.test.mjs scripts/regras.test.mjs scripts/api.test.mjs",
     "banco": "node --env-file-if-exists=.env.local scripts/banco.mjs"
   },
   "dependencies": {

@@ -1,7 +1,7 @@
 // Retornos: quem deve voltar, com a mensagem de WhatsApp pronta.
 
 import * as api from '../data/api.js';
-import { $, bindReturnActions, html, returnRow } from './ui.js';
+import { $, bindReturnActions, html, returnRow, toast } from './ui.js';
 
 const TABS = [
   { id: 'avisar', label: 'Para avisar' },
@@ -58,7 +58,7 @@ export default async function retornos(root, { params }) {
       : 'Ninguém para avisar hoje. Cada serviço concluído marca quando o carro deve voltar.';
 
     $('#abas-retorno', root).innerHTML = String(html`${TABS.map((t) => html`
-      <button type="button" role="tab" id="aba-${t.id}" aria-controls="fila" aria-selected="${String(t.id === tab)}" data-aba="${t.id}">
+      <button type="button" role="tab" id="aba-${t.id}" aria-controls="fila" aria-selected="${String(t.id === tab)}" tabindex="${t.id === tab ? '0' : '-1'}" data-aba="${t.id}">
         ${t.label}<small>${counts[t.id]}</small>
       </button>`)}`);
     list.setAttribute('aria-labelledby', `aba-${tab}`);
@@ -90,13 +90,14 @@ export default async function retornos(root, { params }) {
     if (!button || button.dataset.aba === tab) return;
     tab = button.dataset.aba;
     window.history.replaceState(null, '', `#/retornos?aba=${tab}`);
-    load().then(() => $(`#aba-${tab}`, root)?.focus());
+    load().then(() => $(`#aba-${tab}`, root)?.focus()).catch(error => toast(error.message));
   });
 
   $('#abas-retorno', root).addEventListener('keydown', (event) => {
-    if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
     const i = TABS.findIndex((t) => t.id === tab);
-    const next = TABS[(i + (event.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length];
+    const next = TABS[event.key === 'Home' ? 0 : event.key === 'End' ? TABS.length - 1 : (i + (event.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length];
     $(`#aba-${next.id}`, root)?.click();
   });
 
