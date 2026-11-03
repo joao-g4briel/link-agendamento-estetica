@@ -1,0 +1,10 @@
+# Segredos e dependências: nunca versionar
+.env
+.env.*
+node_modules/
+.vercel/
+.impeccable/config.local.json
+
+# Capturas de revisão do design (geradas localmente)
+.impeccable/review/
+.local/

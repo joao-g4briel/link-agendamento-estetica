@@ -1,10 +1,10 @@
-// Servidor estático sem dependências, só para rodar o projeto localmente.
-// O agendamento e o painel são arquivos estáticos; os dados ficam no
-// placeholder do navegador (assets/js/data/store.js) até existir um backend.
+// Servidor local: arquivos de public/ e as rotas /api (as mesmas da Vercel).
+// Lê DATABASE_URL e PAINEL_SENHA do .env.local (npm start).
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { handle } from './server/app.mjs';
 
 const root = fileURLToPath(new URL('./public', import.meta.url));
 const port = Number(process.env.PORT) || 5173;
@@ -37,8 +37,22 @@ async function resolveFile(urlPath) {
   }
 }
 
+async function api(req, res) {
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  const request = new Request(new URL(req.url, `http://${req.headers.host}`), {
+    method: req.method,
+    headers: req.headers,
+    body: ['GET', 'HEAD'].includes(req.method) ? undefined : Buffer.concat(chunks),
+  });
+  const response = await handle(request);
+  res.writeHead(response.status, Object.fromEntries(response.headers));
+  res.end(Buffer.from(await response.arrayBuffer()));
+}
+
 createServer(async (req, res) => {
   const { pathname } = new URL(req.url, 'http://localhost');
+  if (pathname.startsWith('/api/')) return api(req, res);
   let file = await resolveFile(pathname);
   if (!file && !extname(pathname)) {
     // /painel/qualquer-coisa cai no painel; o resto cai no link público.
@@ -55,7 +69,7 @@ createServer(async (req, res) => {
     'cache-control': 'no-cache',
   });
   res.end(body);
-}).listen(port, () => {
+}).listen(port, '127.0.0.1', () => {
   console.log(`Link de agendamento:  http://localhost:${port}/`);
   console.log(`Painel da estética:   http://localhost:${port}/painel/`);
 });

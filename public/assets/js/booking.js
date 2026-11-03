@@ -1,13 +1,16 @@
-// Link público de agendamento: serviço → dia → horário → dados → pintado no muro.
+// Link público de agendamento: serviço → dia → dados → pintado no muro.
+// Agenda por dia: o cliente escolhe só o dia e o carro chega a partir da abertura.
+// Agenda por horário: o cliente escolhe também a hora de chegada.
 
 import * as api from './data/api.js';
-import { fromMinutes, nowMinutes, parseISODate, toMinutes, today } from './core/dates.js';
+import { addDays, nowMinutes, parseISODate, toMinutes, today, weekday } from './core/dates.js';
 import {
-  firstName, formatDateLong, formatDateShort, formatDuration, formatInterval, formatMonthYear,
+  firstName, formatDateLong, formatDateShort, formatInterval, formatMonthYear,
   formatPhone, formatPlate, formatPrice, formatRelativeDay, html, isValidPhone, MONTHS, raw,
-  WEEKDAYS, WEEKDAYS_SHORT,
+  statusLabel, WEEKDAYS, WEEKDAYS_SHORT,
 } from './core/format.js';
 import { icon } from './core/icons.js';
+import { needsSize, priceForSize, sizeLabel, SIZES, sizesLine, totalFor } from './core/precos.js';
 import { waLink } from './core/whatsapp.js';
 
 const $ = (selector) => document.querySelector(selector);
@@ -20,7 +23,10 @@ const state = {
   days: [],
   date: null,
   time: null,
+  size: null,
+  addon: false,
   submitting: false,
+  idempotencyKey: crypto.randomUUID(),
 };
 let availabilityRequest = 0;
 
@@ -34,15 +40,21 @@ function hourLabel(hhmm) {
   return m === '00' ? `${Number(h)}h` : `${Number(h)}h${m}`;
 }
 
+const hourly = () => state.profile?.shop.bookingMode === 'horario';
+const arrival = (time) => `${hourly() ? 'às' : 'a partir das'} ${hourLabel(time)}`;
+
 function openingLine(hours) {
-  const wd = new Date().getDay();
+  const wd = weekday(today());
   const todayHours = hours?.[wd];
-  if (todayHours?.open && nowMinutes() < toMinutes(todayHours.close)) {
-    return `Aberto hoje das ${hourLabel(todayHours.open)} às ${hourLabel(todayHours.close)}`;
+  const blocked = date => state.profile?.closedDates?.some(b => date >= b.from && date <= (b.to || b.from));
+  if (!blocked(today()) && todayHours?.open && nowMinutes() < toMinutes(todayHours.close)) {
+    if (nowMinutes() < toMinutes(todayHours.open)) return `Abre hoje às ${hourLabel(todayHours.open)}`;
+    if (todayHours.breakStart && nowMinutes() >= toMinutes(todayHours.breakStart) && nowMinutes() < toMinutes(todayHours.breakEnd)) return `Em pausa. Volta às ${hourLabel(todayHours.breakEnd)}`;
+    return `Aberto agora · até ${hourLabel(todayHours.close)}`;
   }
   for (let i = 1; i <= 7; i++) {
     const next = hours?.[(wd + i) % 7];
-    if (next?.open) {
+    if (next?.open && !blocked(addDays(today(), i))) {
       const when = i === 1 ? 'amanhã' : WEEKDAYS[(wd + i) % 7];
       return `Fechado agora. Abre ${when} às ${hourLabel(next.open)}`;
     }
@@ -77,7 +89,8 @@ function addressHTML(address) {
 function renderHeader() {
   const { shop, nextFree } = state.profile;
   document.title = `${shop.name} · Agende seu horário`;
-  $('#aviso-exemplo').hidden = !shop.isExample;
+  $('#aviso-exemplo').hidden = !shop.isExample && !state.profile.local;
+  if (state.profile.local) $('#aviso-exemplo').textContent = 'Validação local · dados de teste separados da produção';
   $('#letreiro').removeAttribute('aria-busy');
   $('#logo').alt = shop.tagline ? `${shop.name} — ${shop.tagline}` : shop.name;
 
@@ -100,7 +113,7 @@ function renderHeader() {
 
   const free = $('#nota-livre');
   if (nextFree && !(invite && !invite.alreadyBooked)) {
-    free.innerHTML = html`<span>Próximo livre<strong>${formatRelativeDay(nextFree.date)}, ${nextFree.time}</strong></span><svg class="giz-seta" aria-hidden="true"><use href="#giz-seta"/></svg>`;
+    free.innerHTML = html`<span>Próximo dia livre<strong>${formatRelativeDay(nextFree.date)}</strong></span><svg class="giz-seta" aria-hidden="true"><use href="#giz-seta"/></svg>`;
     free.hidden = false;
   } else {
     free.hidden = true;
@@ -112,7 +125,7 @@ function renderHeader() {
 /** Linhas do quadro de horário: dias seguidos com o mesmo horário viram uma linha. */
 function hoursBoard(hours) {
   const order = [1, 2, 3, 4, 5, 6, 0];
-  const label = (h) => (h?.open ? `${hourLabel(h.open)} às ${hourLabel(h.close)}` : 'fechado');
+  const label = (h) => (h?.open ? `${hourLabel(h.open)} às ${hourLabel(h.close)}${h.breakStart ? ` · pausa ${hourLabel(h.breakStart)}–${hourLabel(h.breakEnd)}` : ''}` : 'fechado');
   const rows = [];
   for (const wd of order) {
     const text = label(hours?.[wd]);
@@ -129,7 +142,13 @@ function hoursBoard(hours) {
 function renderServices() {
   const list = $('#tabela');
   const { services, shop } = state.profile;
+  const closed = shop.bookingOpen === false;
   list.removeAttribute('aria-busy');
+  if (closed) {
+    $('#ajuda-servico').innerHTML = html`A agenda online está fechada no momento.
+      ${shop.whatsapp ? html`<a href="${waLink(shop.whatsapp, 'Oi! Queria agendar um horário.')}" target="_blank" rel="noopener">Chame no WhatsApp</a> para marcar.` : ''}`;
+    $('#ajuda-servico').classList.add('etapa__ajuda--fechada');
+  }
   if (!services.length) {
     list.innerHTML = html`<li class="vazio-giz">A tabela de serviços ainda está sendo pintada.
       ${shop.whatsapp ? html`<a href="${waLink(shop.whatsapp, 'Oi! Queria agendar um horário.')}" target="_blank" rel="noopener">Chame no WhatsApp</a> para agendar.` : ''}</li>`;
@@ -137,12 +156,13 @@ function renderServices() {
   }
   list.innerHTML = services.map((s) => html`
     <li>
-      <button type="button" class="servico" data-id="${s.id}" aria-pressed="false">
+      <button type="button" class="servico" data-id="${s.id}" aria-pressed="false" ${closed ? html`disabled` : ''}>
         <span class="servico__nome">${s.name}</span>
         <span class="servico__pontos" aria-hidden="true"></span>
         <span class="servico__preco">${s.priceFrom ? html`<small>a partir de</small>` : ''}${formatPrice(s.priceCents)}</span>
-        <span class="servico__meta">${formatDuration(s.durationMin)} de serviço${s.returnInterval ? ` · ${cycleLabel(s.returnInterval)}` : ''}</span>
-        ${s.description ? html`<span class="servico__desc">${s.description}</span>` : ''}
+        ${s.pricesBySize ? html`<span class="servico__meta">${sizesLine(s.pricesBySize)}</span>` : ''}
+        ${s.returnInterval ? html`<span class="servico__meta">${cycleLabel(s.returnInterval)}</span>` : ''}
+        ${s.description ? html`<span class="servico__desc" role="list">${s.description.split(/\r?\n/).map(line => line.trim().replace(/^[-•]\s*/, '')).filter(Boolean).map(line => html`<span role="listitem">${line}</span>`)}</span>` : ''}
       </button>
     </li>`).join('');
 }
@@ -185,11 +205,13 @@ function revealStep(selector, { scroll = true } = {}) {
 }
 
 async function selectService(id, { scroll = true } = {}) {
+  state.idempotencyKey = crypto.randomUUID();
   const service = state.profile.services.find((s) => s.id === id);
   if (!service) return;
   state.service = service;
   state.date = null;
   state.time = null;
+  state.addon = false;
 
   document.querySelectorAll('.servico').forEach((button) => {
     button.setAttribute('aria-pressed', String(button.dataset.id === id));
@@ -199,7 +221,7 @@ async function selectService(id, { scroll = true } = {}) {
   $('#etapa-dados').hidden = true;
 
   $('#ajuda-quando').textContent =
-    `${service.name} leva ${formatDuration(service.durationMin)}. O horário é o de chegada do carro.`;
+    `${service.name}. ${hourly() ? 'Escolha o dia e o horário de chegada.' : 'Escolha o dia e confira a orientação de chegada.'}`;
   $('#dias').classList.add('dias--carregando');
   $('#dias').setAttribute('aria-busy', 'true');
   $('#dias').innerHTML = Array.from({ length: 7 }, () =>
@@ -212,27 +234,36 @@ async function selectService(id, { scroll = true } = {}) {
     const days = await api.getAvailability(id);
     if (request !== availabilityRequest) return;
     state.days = days;
-    const first = days.find((d) => d.slots.length);
-    state.date = first ? first.date : null;
+    state.date = null;
     renderDays();
-    renderSlots();
+    renderDayNote();
   } catch {
     if (request !== availabilityRequest) return;
     $('#dias').classList.remove('dias--carregando');
+    $('#dias').removeAttribute('aria-busy');
     $('#dias').innerHTML = '';
-    $('#horarios').innerHTML = html`<p class="vazio-giz">Não deu para ver os horários agora.
+    $('#horarios').innerHTML = html`<p class="vazio-giz">Não deu para ver os dias livres agora.
       <button type="button" class="link-giz" data-acao="recarregar">Tentar de novo</button></p>`;
   }
 }
 
 function dayTag(day) {
+  if (day.slots.length && hourly()) {
+    const single = day.slots.length === 1;
+    const times = `${single ? '1 horário' : `${day.slots.length} horários`} para escolher`;
+    if (day.free === 1) return { short: 'última vaga', long: `última vaga, ${times}` };
+    if (day.free) return { short: `${day.free} vagas`, long: `${day.free} vagas, ${times}` };
+    return { short: single ? '1 livre' : `${day.slots.length} livres`, long: times };
+  }
   if (day.slots.length) {
-    const n = day.slots.length;
-    return { short: `${n} ${n === 1 ? 'horário' : 'horários'}`, long: `${n} ${n === 1 ? 'horário livre' : 'horários livres'}` };
+    const { free, time } = day.slots[0];
+    if (free === 1) return { short: 'última vaga', long: `última vaga, chegada a partir das ${hourLabel(time)}` };
+    if (free) return { short: `${free} vagas`, long: `${free} vagas, chegada a partir das ${hourLabel(time)}` };
+    return { short: 'livre', long: `livre, chegada a partir das ${hourLabel(time)}` };
   }
   if (day.reason === 'fechado') return { short: 'fechado', long: 'fechado' };
-  if (day.reason === 'lotado') return { short: 'lotado', long: 'sem horário livre' };
-  if (day.reason === 'não cabe no dia') return { short: 'não cabe', long: 'o serviço não cabe nesse dia' };
+  if (day.reason === 'lotado') return { short: 'lotado', long: 'sem vaga' };
+  if (day.reason === 'encerrado') return { short: 'encerrado', long: 'não dá mais para hoje' };
   return { short: 'folga', long: day.reason || 'folga' };
 }
 
@@ -241,11 +272,9 @@ function renderDays() {
   container.classList.remove('dias--carregando');
   container.removeAttribute('aria-busy');
 
+  // Sem nenhum dia livre, quem explica e oferece o encaixe é renderDayNote.
   if (!state.days.some((d) => d.slots.length)) {
-    const { shop } = state.profile;
     container.innerHTML = '';
-    $('#horarios').innerHTML = html`<p class="vazio-giz">Sem horário livre para ${state.service.name.toLowerCase()} nos próximos ${state.days.length} dias.
-      ${shop.whatsapp ? html`<a href="${waLink(shop.whatsapp, `Oi! Queria um encaixe para ${state.service.name.toLowerCase()}.`)}" target="_blank" rel="noopener">Peça um encaixe no WhatsApp</a>.` : ''}</p>`;
     return;
   }
 
@@ -273,64 +302,101 @@ function renderDays() {
   if (selected) selected.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 
-function renderSlots(message = '') {
-  const day = state.days.find((d) => d.date === state.date);
-  const box = $('#horarios');
-  if (!day) {
-    box.innerHTML = message ? html`<p class="vazio-giz" role="alert">${message}</p>` : '';
-    return;
-  }
-  const capacity = state.profile.shop.capacity || 1;
-  const groups = [
-    ['manhã', day.slots.filter((s) => s.time < '12:00')],
-    ['tarde', day.slots.filter((s) => s.time >= '12:00')],
-  ].filter(([, slots]) => slots.length);
+function noDaysNote() {
+  const { shop } = state.profile;
+  return html`<p class="vazio-giz">Sem dia livre para ${state.service.name.toLowerCase()} nos próximos ${state.days.length} dias.
+    ${shop.whatsapp ? html`<a href="${waLink(shop.whatsapp, `Oi! Queria um encaixe para ${state.service.name.toLowerCase()}.`)}" target="_blank" rel="noopener">Peça um encaixe no WhatsApp</a>.` : ''}</p>`;
+}
 
-  box.innerHTML = html`
+function timesHTML(day) {
+  return html`<p class="horarios__titulo">Escolha o horário</p>
+    <ul class="horarios__lista" role="list">${day.slots.map((s) => html`
+      <li><button type="button" class="horario" data-time="${s.time}" aria-pressed="${String(s.time === state.time)}">${hourLabel(s.time)}</button></li>`)}</ul>`;
+}
+
+/** Embaixo dos dias: o aviso de erro (dia que lotou), a falta de dias, os horários ou a hora de chegada do dia escolhido. */
+function renderDayNote(message = '') {
+  const day = state.days.find((d) => d.date === state.date && d.slots.length);
+  $('#horarios').innerHTML = html`
     ${message ? html`<p class="vazio-giz" role="alert">${message}</p>` : ''}
-    <p class="visualmente-oculto">Horários livres na ${formatDateLong(day.date)}</p>
-    ${groups.map(([label, slots]) => html`
-      <div class="horarios__grupo">
-        <h3 class="horarios__titulo">${label}</h3>
-        <ul class="horarios__lista" role="list">
-          ${slots.map((slot) => html`
-            <li><button type="button" class="horario" data-time="${slot.time}" aria-pressed="${String(slot.time === state.time)}">
-              ${slot.time}${capacity > 1 && slot.free === 1 ? html`<small>última vaga</small>` : ''}
-            </button></li>`)}
-        </ul>
-      </div>`)}
+    ${state.days.some((d) => d.slots.length) ? '' : noDaysNote()}
+    ${day && hourly() ? timesHTML(day) : ''}
+    ${day && !hourly() ? html`<p class="giz-nota">${icon('clock')}<span>Traga o carro na ${formatDateLong(day.date)}, <strong>a partir das ${hourLabel(day.slots[0].time)}</strong>.</span></p>` : ''}
   `;
 }
 
 function selectDay(date) {
-  if (state.date === date) return;
+  state.idempotencyKey = crypto.randomUUID();
+  const day = state.days.find((d) => d.date === date);
+  if (!day || !day.slots.length) return;
   state.date = date;
-  state.time = null;
-  $('#etapa-quando').classList.remove('feita');
-  $('#etapa-dados').hidden = true;
+  state.time = hourly() ? null : day.slots[0].time;
   document.querySelectorAll('.dia').forEach((button) => {
     button.setAttribute('aria-pressed', String(button.dataset.date === date));
   });
-  renderSlots();
+  renderDayNote();
+  if (hourly()) {
+    $('#etapa-quando').classList.remove('feita');
+    $('#etapa-dados').hidden = true;
+    return;
+  }
+  openDetails();
 }
 
 function selectTime(time) {
+  state.idempotencyKey = crypto.randomUUID();
   state.time = time;
   document.querySelectorAll('.horario').forEach((button) => {
     button.setAttribute('aria-pressed', String(button.dataset.time === time));
   });
+  openDetails();
+}
+
+function openDetails() {
   $('#etapa-quando').classList.add('feita');
+  renderSizes();
+  renderAddon();
   renderSummary();
   revealStep('#etapa-dados');
 }
 
+function renderSizes() {
+  const s = state.service;
+  $('#campo-porte').hidden = !needsSize(s);
+  if (!needsSize(s)) return;
+  $('#portes').innerHTML = SIZES.map(({ code, label }) => html`
+    <label class="porte">
+      <input type="radio" name="size" value="${code}" ${state.size === code ? raw('checked') : ''}>
+      <span>${label}</span>
+      <strong>${formatPrice(priceForSize(s, code))}</strong>
+    </label>`).join('');
+}
+
+function renderAddon() {
+  const { addon } = state.service;
+  $('#campo-adicional').hidden = !addon;
+  if (!addon) return;
+  const values = Object.values(addon.prices);
+  const price = state.size ? `+ ${formatPrice(addon.prices[state.size])}` : `${formatPrice(Math.min(...values))} a ${formatPrice(Math.max(...values))}`;
+  $('#f-adicional').checked = state.addon;
+  $('#adicional-texto').textContent = `Adicionar ${addon.name} (${price})`;
+}
+
+function priceText() {
+  const s = state.service;
+  if (needsSize(s) && !state.size) return `a partir de ${formatPrice(s.priceCents)}`;
+  const from = !s.pricesBySize && s.priceFrom ? 'a partir de ' : '';
+  return `${from}${formatPrice(totalFor(s, state.size, state.addon))}`;
+}
+
 function renderSummary() {
   const s = state.service;
-  const end = fromMinutes(toMinutes(state.time) + s.durationMin);
+  const extras = [state.size && needsSize(s) ? `Porte ${sizeLabel(state.size).toLowerCase()}` : '', state.addon && s.addon ? `com ${s.addon.name}` : ''].filter(Boolean).join(' · ');
   $('#resumo').innerHTML = html`
     <p class="resumo__servico">${s.name}</p>
-    <p class="resumo__quando">${capitalize(formatDateLong(state.date))}, às ${state.time}</p>
-    <p>Carro pronto por volta das ${end} · ${s.priceFrom ? 'a partir de ' : ''}${formatPrice(s.priceCents)}, pago na estética</p>
+    <p class="resumo__quando">${capitalize(formatDateLong(state.date))}</p>
+    ${extras ? html`<p>${extras}</p>` : ''}
+    <p>Chegada ${arrival(state.time)} · ${priceText()}, pago na estética</p>
   `;
 }
 
@@ -367,10 +433,14 @@ function prefill(data) {
   if (data.phone) fields.phone().value = formatPhone(data.phone);
   if (data.vehicle) fields.vehicle().value = data.vehicle;
   if (data.plate) fields.plate().value = formatPlate(data.plate);
+  if (data.size) state.size = data.size;
 }
 
+// O porte só existe na tela depois de escolher o dia, por isso fica fora de `fields`.
+const fieldInput = (name) => (name === 'size' ? $('#portes input') : fields[name]?.());
+
 function setFieldError(name, message) {
-  const input = fields[name]?.();
+  const input = fieldInput(name);
   const error = $(`#e-${name}`);
   if (!input || !error) return;
   const wrapper = input.closest('.campo');
@@ -390,6 +460,7 @@ function setFieldError(name, message) {
 
 function clientValidate(data) {
   const errors = {};
+  if (needsSize(state.service) && !data.size) errors.size = 'Escolha o porte para ver o valor certo.';
   if (!data.name || data.name.trim().length < 2) errors.name = 'Diga seu nome para a gente te chamar.';
   if (!isValidPhone(data.phone)) errors.phone = 'Confira o WhatsApp: DDD e número, ex.: (81) 91234-5678.';
   if (!data.vehicle || data.vehicle.trim().length < 2) errors.vehicle = 'Diga qual é o carro (modelo e cor).';
@@ -397,7 +468,8 @@ function clientValidate(data) {
 }
 
 function showErrors(errors) {
-  ['name', 'phone', 'vehicle'].forEach((name) => setFieldError(name, errors[name]));
+  const order = ['size', 'name', 'phone', 'vehicle'];
+  order.forEach((name) => setFieldError(name, errors[name]));
   const box = $('#ficha-erro');
   const count = Object.keys(errors).length;
   if (!count) {
@@ -406,8 +478,7 @@ function showErrors(errors) {
   }
   box.innerHTML = html`${icon('circle-alert')}<span>${count === 1 ? 'Falta um detalhe' : 'Faltam alguns detalhes'} para confirmar. Confira ${count === 1 ? 'o campo marcado' : 'os campos marcados'}.</span>`;
   box.hidden = false;
-  const first = ['name', 'phone', 'vehicle'].find((name) => errors[name]);
-  fields[first]().focus();
+  fieldInput(order.find((name) => errors[name])).focus();
 }
 
 async function submit(event) {
@@ -422,7 +493,10 @@ async function submit(event) {
     vehicle: fields.vehicle().value.trim(),
     plate: fields.plate().value,
     notes: fields.notes().value,
+    size: needsSize(state.service) ? state.size : undefined,
+    addon: Boolean(state.addon && state.service.addon),
     returnToken: state.invite && !state.invite.alreadyBooked ? state.invite.token : undefined,
+    idempotencyKey: state.idempotencyKey,
   };
   const errors = clientValidate(data);
   showErrors(errors);
@@ -436,23 +510,29 @@ async function submit(event) {
 
   try {
     const result = await api.createBooking(data);
-    rememberClient({ name: data.name, phone: data.phone, vehicle: data.vehicle, plate: data.plate });
+    if ($('#lembrar-dados').checked) rememberClient({ name: data.name, phone: data.phone, vehicle: data.vehicle, plate: data.plate, size: state.size });
+    else { try { localStorage.removeItem(CLIENT_KEY); } catch {} }
     renderPainted(result);
   } catch (error) {
     if (error.code === 'SLOT_TAKEN') {
+      state.idempotencyKey = crypto.randomUUID();
       state.time = null;
       $('#etapa-dados').hidden = true;
       $('#etapa-quando').classList.remove('feita');
       const days = await api.getAvailability(state.service.id).catch(() => state.days);
       state.days = days;
-      if (!days.find((d) => d.date === state.date)?.slots.length) {
-        state.date = days.find((d) => d.slots.length)?.date || null;
-      }
+      // O dia lotou: o cliente escolhe outro.
+      if (!days.find((d) => d.date === state.date)?.slots.length) state.date = null;
       renderDays();
-      renderSlots(error.message);
+      renderDayNote(error.message);
       $('#etapa-quando').scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth', block: 'start' });
     } else if (error.fields) {
       showErrors(error.fields);
+    } else if (error.code === 'CLOSED') {
+      const box = $('#ficha-erro');
+      box.innerHTML = html`${icon('circle-alert')}<span>${error.message}</span>`;
+      box.hidden = false;
+      box.focus();
     } else {
       const box = $('#ficha-erro');
       box.innerHTML = html`${icon('circle-alert')}<span>Não deu para confirmar agora. Seus dados continuam aqui; tente de novo em instantes.</span>`;
@@ -470,36 +550,33 @@ async function submit(event) {
 // ---------------------------------------------------------------------------
 // Pintado no muro
 
-function calendarStamp(date, time) {
-  return `${date.replace(/-/g, '')}T${time.replace(':', '')}00`;
-}
+// Evento de dia inteiro: o agendamento é por dia, com chegada a partir da abertura.
+const calendarDay = (date) => date.replace(/-/g, '');
 
 function googleCalendarUrl({ appointment, service, shop }) {
-  const end = fromMinutes(toMinutes(appointment.start) + appointment.durationMin);
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: `${service.name} · ${shop.name}`,
-    dates: `${calendarStamp(appointment.date, appointment.start)}/${calendarStamp(appointment.date, end)}`,
+    dates: `${calendarDay(appointment.date)}/${calendarDay(addDays(appointment.date, 1))}`,
     ctz: 'America/Sao_Paulo',
     location: shop.address || '',
-    details: `Carro: ${appointment.vehicle}${appointment.plate ? ` (${appointment.plate})` : ''}. Código: ${appointment.code}.`,
+    details: `Traga o carro ${arrival(appointment.start)}. Carro: ${appointment.vehicle}${appointment.plate ? ` (${appointment.plate})` : ''}. Código: ${appointment.code}.`,
   });
   return `https://calendar.google.com/calendar/render?${params}`;
 }
 
 function icsFile({ appointment, service, shop }) {
-  const end = fromMinutes(toMinutes(appointment.start) + appointment.durationMin);
   const escape = (text) => String(text).replace(/[\\,;]/g, (c) => `\\${c}`).replace(/\n/g, '\\n');
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
   const body = [
     'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Link de agendamento//PT-BR', 'BEGIN:VEVENT',
     `UID:${appointment.id}@agendamento`,
     `DTSTAMP:${stamp}`,
-    `DTSTART:${calendarStamp(appointment.date, appointment.start)}`,
-    `DTEND:${calendarStamp(appointment.date, end)}`,
+    `DTSTART;VALUE=DATE:${calendarDay(appointment.date)}`,
+    `DTEND;VALUE=DATE:${calendarDay(addDays(appointment.date, 1))}`,
     `SUMMARY:${escape(`${service.name} · ${shop.name}`)}`,
     `LOCATION:${escape(shop.address || '')}`,
-    `DESCRIPTION:${escape(`Carro: ${appointment.vehicle}. Código: ${appointment.code}.`)}`,
+    `DESCRIPTION:${escape(`Traga o carro ${arrival(appointment.start)}. Carro: ${appointment.vehicle}. Código: ${appointment.code}.`)}`,
     'END:VEVENT', 'END:VCALENDAR',
   ].join('\r\n');
   return URL.createObjectURL(new Blob([body], { type: 'text/calendar;charset=utf-8' }));
@@ -508,10 +585,9 @@ function icsFile({ appointment, service, shop }) {
 function renderPainted(result) {
   const { appointment: a, service, nextReturn, shop } = result;
   const date = parseISODate(a.date);
-  const end = fromMinutes(toMinutes(a.start) + a.durationMin);
   const rel = formatRelativeDay(a.date);
   const dayWord = rel === 'hoje' || rel === 'amanhã' ? rel : WEEKDAYS[date.getDay()].replace('-feira', '');
-  const shopMessage = `Oi! Agendei ${service.name.toLowerCase()} para ${formatDateLong(a.date)}, às ${a.start} (código ${a.code}).`;
+  const shopMessage = `Oi! Agendei ${service.name.toLowerCase()} para ${formatDateLong(a.date)} (código ${a.code}).`;
 
   const section = $('#pintado');
   section.innerHTML = html`
@@ -520,11 +596,13 @@ function renderPainted(result) {
       <svg class="pintado__check" aria-hidden="true"><use href="#pincel-check"/></svg>
       <span class="tinta" style="--i:0">${dayWord}</span>
       <span class="tinta" style="--i:1">${formatDateShort(a.date)}</span>
-      <span class="pintado__hora tinta" style="--i:2">${a.start}</span>
+      <span class="pintado__hora pintado__hora--chegada tinta" style="--i:2">${arrival(a.start)}</span>
     </h2>
     <dl class="pintado__ficha">
-      <div><dt>Serviço</dt><dd>${service.name}, carro pronto por volta das ${end}</dd></div>
-      <div><dt>Carro</dt><dd>${a.vehicle}${a.plate ? ` · ${a.plate}` : ''}</dd></div>
+      <div><dt>Serviço</dt><dd>${service.name}</dd></div>
+      <div><dt>Carro</dt><dd>${a.vehicle}${a.plate ? ` · ${a.plate}` : ''}${a.size ? ` · porte ${sizeLabel(a.size).toLowerCase()}` : ''}</dd></div>
+      ${a.addonName ? html`<div><dt>Adicional</dt><dd>${a.addonName}</dd></div>` : ''}
+      <div><dt>Valor</dt><dd>${service.priceFrom && !a.size ? 'a partir de ' : ''}${formatPrice(a.priceCents)}, pago na estética</dd></div>
       ${shop.address ? html`<div><dt>Onde</dt><dd>${addressHTML(shop.address)}</dd></div>` : ''}
       <div><dt>Código</dt><dd class="pintado__codigo">${a.code}</dd></div>
     </dl>
@@ -537,6 +615,7 @@ function renderPainted(result) {
       </div>
     </div>
     <div class="pintado__mais">
+      ${a.manageToken ? html`<a href="?reserva=${a.manageToken}">Consultar, remarcar ou cancelar este agendamento</a>` : ''}
       <a href="${icsFile(result)}" download="agendamento-${a.code}.ics">Usa iPhone ou Outlook? Baixe o arquivo da agenda</a>
       <button type="button" class="link-giz" data-acao="outro">Agendar outro serviço</button>
     </div>
@@ -556,9 +635,11 @@ function renderPainted(result) {
 }
 
 function startOver() {
+  state.idempotencyKey = crypto.randomUUID();
   state.service = null;
   state.date = null;
   state.time = null;
+  state.addon = false;
   $('#pintado').hidden = true;
   $('#pintado').innerHTML = '';
   $('#agendar').hidden = false;
@@ -570,6 +651,8 @@ function startOver() {
   api.getPublicProfile().then((profile) => {
     state.profile = profile;
     renderHeader();
+  }).catch(() => {
+    // Sem rede: o letreiro segue com os dados já carregados.
   });
   $('#etapa-servico').scrollIntoView({ block: 'start' });
 }
@@ -578,6 +661,25 @@ function startOver() {
 // Eventos
 
 function bindEvents() {
+  $('#ficha').addEventListener('input', () => { if (!state.submitting) state.idempotencyKey = crypto.randomUUID(); });
+  $('#limpar-dados').addEventListener('click', () => {
+    try { localStorage.removeItem(CLIENT_KEY); } catch {}
+    Object.values(fields).forEach(get => { get().value = ''; });
+    $('#lembrar-dados').checked = false;
+    state.size = null;
+    if (state.service && state.date) { renderSizes(); renderAddon(); renderSummary(); }
+  });
+  $('#ficha').addEventListener('change', (event) => {
+    if (event.target.name === 'size') {
+      state.size = event.target.value;
+      setFieldError('size', '');
+      renderAddon();
+      renderSummary();
+    } else if (event.target.id === 'f-adicional') {
+      state.addon = event.target.checked;
+      renderSummary();
+    }
+  });
   $('#tabela').addEventListener('click', (event) => {
     const button = event.target.closest('.servico');
     if (button && button.dataset.id) selectService(button.dataset.id);
@@ -587,9 +689,9 @@ function bindEvents() {
     if (button && !button.disabled && button.dataset.date) selectDay(button.dataset.date);
   });
   $('#horarios').addEventListener('click', (event) => {
-    const button = event.target.closest('.horario');
-    if (button) selectTime(button.dataset.time);
     if (event.target.closest('[data-acao="recarregar"]') && state.service) selectService(state.service.id, { scroll: false });
+    const time = event.target.closest('[data-time]');
+    if (time) selectTime(time.dataset.time);
   });
   $('#pintado').addEventListener('click', (event) => {
     if (event.target.closest('[data-acao="outro"]')) startOver();
@@ -626,6 +728,7 @@ async function init() {
   bindEvents();
   const params = new URLSearchParams(window.location.search);
   const token = params.get('retorno');
+  const reservation = params.get('reserva');
   const preset = params.get('servico');
   try {
     const [profile, invite] = await Promise.all([
@@ -638,16 +741,75 @@ async function init() {
     renderServices();
     renderFooter();
 
-    if (invite && !invite.alreadyBooked) {
+    if (reservation) { await renderManaged(reservation); return; }
+
+    // Quem já pediu para lembrar continua lembrado, ou a próxima reserva apagaria os dados.
+    const remembered = readRememberedClient();
+    $('#lembrar-dados').checked = Boolean(remembered);
+
+    if (profile.shop.bookingOpen === false) {
+      // Agenda fechada: só a tabela de serviços, sem escolher horário.
+    } else if (invite && !invite.alreadyBooked) {
       prefill(invite);
       selectService(invite.serviceId, { scroll: false });
     } else {
-      prefill(readRememberedClient());
+      prefill(remembered);
       if (preset) selectService(preset);
     }
   } catch {
     renderLoadError();
   }
+}
+
+async function renderManaged(token, notice = '') {
+  $('#agendar').hidden = true;
+  const section = $('#pintado');
+  section.hidden = false;
+  try {
+    const result = await api.getManagedBooking(token);
+    const a = result.appointment;
+    const days = result.canChange ? await api.getAvailability(a.serviceId) : [];
+    // Por horário dá para mudar só a hora do mesmo dia; por dia, remarcar é trocar de dia.
+    const isCurrent = (d, s) => d.date === a.date && s.time === a.start;
+    const otherDays = days.filter(d => (hourly() ? d.slots.some(s => !isCurrent(d, s)) : d.slots.length && d.date !== a.date));
+    const guidance = a.status === 'cancelado' ? 'Este agendamento foi cancelado.'
+      : result.canChange ? result.cancelNotice : 'O prazo de alteração acabou. Precisando, fale com a estética.';
+    section.innerHTML = html`<h2 class="etapa__titulo" id="pintado-titulo">Seu agendamento</h2>
+      <p>${result.service.name} · ${formatDateLong(a.date)} · chegada ${arrival(a.start)}</p>
+      <p>${a.vehicle}${a.size ? ` · porte ${sizeLabel(a.size).toLowerCase()}` : ''} · situação: ${statusLabel(a.status)}</p>
+      <p>${a.addonName ? `Com ${a.addonName} · ` : ''}${formatPrice(a.priceCents)}, pago na estética</p>
+      <p>${guidance}</p>
+      ${result.canChange ? html`<form id="gerir-reserva" class="ficha">
+        ${otherDays.length ? html`<div class="campo"><label for="nova-data">Remarcar para</label>
+        <select id="nova-data" name="date">${otherDays.map(d => html`<option value="${d.date}">${formatDateLong(d.date)}</option>`)}</select></div>
+        ${hourly() ? html`<div class="campo"><label for="nova-hora">Horário</label><select id="nova-hora" name="start"></select></div>` : ''}
+        <button class="placa-botao" type="submit">Remarcar</button>` : html`<p>Não há outro dia livre para remarcar agora.</p>`}
+        <button class="botao-giz" type="button" id="cancelar-reserva">Cancelar agendamento</button></form>` : ''}
+      <p id="gerir-status" role="status" tabindex="-1">${notice}</p><a class="link-giz" href="./">Voltar aos serviços</a>`;
+    const status = $('#gerir-status');
+    const form = $('#gerir-reserva');
+    if (notice) status.focus({ preventScroll: true });
+    async function change(patch, done) {
+      form.querySelectorAll('button').forEach(b => b.disabled = true);
+      try { await api.manageBooking(token, patch); await renderManaged(token, done); }
+      catch (error) { status.textContent = error.message; form.querySelectorAll('button').forEach(b => b.disabled = false); }
+    }
+    const fillTimes = () => {
+      const day = otherDays.find(d => d.date === form.elements.date.value);
+      form.elements.start.innerHTML = day.slots.filter(s => !isCurrent(day, s)).map(s => html`<option value="${s.time}">${hourLabel(s.time)}</option>`).join('');
+    };
+    if (hourly() && otherDays.length) {
+      fillTimes();
+      form.elements.date.addEventListener('change', fillTimes);
+    }
+    form?.addEventListener('submit', event => {
+      event.preventDefault();
+      const date = form.elements.date.value;
+      const start = form.elements.start?.value;
+      change({ action: 'remarcar', date, start }, `Pronto: remarcado para ${formatDateLong(date)}${start ? `, às ${hourLabel(start)}` : ''}.`);
+    });
+    $('#cancelar-reserva')?.addEventListener('click', () => { if (confirm('Cancelar este agendamento e liberar a vaga?')) change({ action: 'cancelar' }, 'Agendamento cancelado. A vaga foi liberada.'); });
+  } catch (error) { section.innerHTML = html`<h2 id="pintado-titulo">Não foi possível abrir a reserva</h2><p>${error.code === 'NOT_FOUND' ? 'Link inválido ou expirado.' : error.message}</p><a href="./" class="link-giz">Voltar ao site</a>`; }
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

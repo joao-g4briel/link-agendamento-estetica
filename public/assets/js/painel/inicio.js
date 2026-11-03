@@ -1,83 +1,29 @@
 // Início: a busca no muro, o quadro do dia e as listas de hoje.
 
 import * as api from '../data/api.js';
-import { nowMinutes, toMinutes, today } from '../core/dates.js';
-import { formatDateShort, formatDateShortYear, formatPhone, formatRelativeDay, WEEKDAYS } from '../core/format.js';
+import { today, weekday } from '../core/dates.js';
+import { formatDateShort, formatDateShortYear, formatPhone, formatRelativeDay, statusLabel, WEEKDAYS } from '../core/format.js';
 import { waLink } from '../core/whatsapp.js';
 import {
   $, appointmentRow, bindAppointmentActions, bindReturnActions, hourLabel, html, icon,
-  placa, returnRow,
+  placa, returnRow, toast,
 } from './ui.js';
 
-function lanes(items, capacity) {
-  const sorted = items
-    .filter((a) => a.status !== 'cancelado')
-    .sort((a, b) => a.start.localeCompare(b.start));
-  const lanesEnd = Array.from({ length: Math.max(1, capacity) }, () => -1);
-  const placed = [];
-  for (const a of sorted) {
-    const start = toMinutes(a.start);
-    let lane = lanesEnd.findIndex((end) => end <= start);
-    if (lane === -1) {
-      lanesEnd.push(-1);
-      lane = lanesEnd.length - 1;
-    }
-    lanesEnd[lane] = start + a.durationMin;
-    placed.push({ ...a, lane });
-  }
-  return { count: lanesEnd.length, placed };
-}
-
 function board(home) {
-  if (home.block) {
-    return html`<div class="quadro"><p class="quadro__fechado">Folga hoje: ${home.block.reason}. O link não mostra horários.</p></div>`;
-  }
-  if (!home.hours) {
-    return html`<div class="quadro"><p class="quadro__fechado">Fechado hoje. O link continua aceitando agendamentos para os próximos dias.</p></div>`;
-  }
-  const open = toMinutes(home.hours.open);
-  const close = toMinutes(home.hours.close);
-  const span = close - open;
-  const pct = (min) => `${(((Math.min(Math.max(min, open), close) - open) / span) * 100).toFixed(2)}%`;
-  const { count, placed } = lanes(home.today, home.capacity);
-  const now = nowMinutes();
-  const marks = [];
-  for (let m = Math.ceil(open / 120) * 120; m <= close; m += 120) marks.push(m);
-  if (marks[0] !== open) marks.unshift(open);
-  if (marks[marks.length - 1] !== close) marks.push(close);
-  const cars = home.today.filter((a) => a.status !== 'cancelado' && a.status !== 'faltou').length;
-  const label = `Hoje, ${cars} ${cars === 1 ? 'carro' : 'carros'} em ${home.capacity} ${home.capacity === 1 ? 'vaga' : 'vagas'}, ${Math.round(home.load.ratio * 100)}% do dia ocupado.`;
-  const pause = home.hours.breakStart && home.hours.breakEnd
-    ? { left: pct(toMinutes(home.hours.breakStart)), width: `calc(${pct(toMinutes(home.hours.breakEnd))} - ${pct(toMinutes(home.hours.breakStart))})` }
-    : null;
-
-  return html`
-    <div class="quadro">
-      <p class="quadro__legenda">
-        <span><strong>${cars} ${cars === 1 ? 'carro' : 'carros'}</strong> · ${Math.round(home.load.ratio * 100)}% das vagas ocupadas</span>
-        <span>${hourLabel(home.hours.open)} às ${hourLabel(home.hours.close)}</span>
-      </p>
-      <div class="quadro__pista" role="img" aria-label="${label}">
-        ${Array.from({ length: count }, (_, lane) => html`
-          <div class="quadro__vaga">
-            ${pause ? html`<span class="quadro__pausa" style="left:${pause.left};width:${pause.width}" title="Pausa"></span>` : ''}
-            ${placed.filter((a) => a.lane === lane).map((a) => html`
-              <span class="quadro__carro quadro__carro--${a.status === 'concluido' ? 'concluido' : a.status === 'faltou' ? 'faltou' : 'agendado'}"
-                style="left:${pct(toMinutes(a.start))};width:calc(${pct(toMinutes(a.start) + a.durationMin)} - ${pct(toMinutes(a.start))})"
-                title="${a.start} · ${a.vehicle} · ${a.service.name}">${a.status === 'concluido' ? icon('check') : ''}<span class="quadro__placa">${a.plate || a.vehicle.split(' ')[1] || a.vehicle}</span><span class="quadro__curta" aria-hidden="true">${a.plate ? a.plate.slice(-4) : (a.vehicle.split(' ')[1] || a.vehicle).slice(0, 4)}</span></span>`)}
-          </div>`)}
-        ${now > open && now < close ? html`<span class="quadro__agora" style="left:${pct(now)}" title="Agora"></span>` : ''}
-      </div>
-      <div class="quadro__horas" aria-hidden="true">
-        ${marks.map((m) => html`<span style="left:${pct(m)}">${hourLabel(`${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`)}</span>`)}
-      </div>
-    </div>`;
+  const count = home.load.cars;
+  const limit = home.maxCarsPerDay;
+  return html`<div class="quadro"><p class="quadro__legenda"><strong>${count}${limit ? ` / ${limit}` : ''} carros</strong>
+    <span>${home.block ? home.block.reason : home.hours ? `${home.hours.open} - ${home.hours.close}` : 'Fechado'}</span></p>
+    ${limit ? html`<progress class="ocupacao-dia" max="${limit}" value="${count}" aria-label="Carros no dia"></progress>` : ''}
+    <p>${home.load.full ? 'Dia lotado.' : limit ? `${Math.max(0, limit - count)} vagas no dia.` : 'Sem limite diário configurado.'}</p></div>`;
 }
 
 function sections(home, settings, baseUrl) {
   const done = home.today.filter((a) => a.status === 'concluido').length;
   return html`
     <div class="inicio__principal">
+    ${home.review?.length ? html`<section class="secao"><h2 class="secao__titulo">Para revisar</h2><p>Atendimentos anteriores que ainda precisam de uma decisão.</p><ul class="lista" role="list">${home.review.map(a => appointmentRow(a, { settings, showDate: true }))}</ul></section>` : ''}
+    ${home.confirmations?.length ? html`<section class="secao"><h2 class="secao__titulo">Confirmar amanhã</h2><ul class="lista" role="list">${home.confirmations.map(a => appointmentRow(a, { settings, showDate: true }))}</ul></section>` : ''}
     <section class="secao secao--hoje" aria-labelledby="t-hoje">
       <div class="secao__cabeca">
         <h2 class="secao__titulo" id="t-hoje">Hoje <small>${home.today.length ? `${done} de ${home.today.length} prontos` : ''}</small></h2>
@@ -123,7 +69,7 @@ function customerResult(c) {
           <details class="dobra">
             <summary>Histórico (${c.visits} ${c.visits === 1 ? 'visita' : 'visitas'}) ${icon('chevron-down')}</summary>
             <ul class="historico dobra__conteudo" role="list">
-              ${c.history.map((a) => html`<li>${formatDateShortYear(a.date)} · ${a.service.name} · ${a.vehicle} · ${{ agendado: 'agendado', concluido: 'concluído', faltou: 'não veio', cancelado: 'cancelado' }[a.status]}</li>`)}
+              ${c.history.map((a) => html`<li>${formatDateShortYear(a.date)} · ${a.service.name} · ${a.vehicle} · ${statusLabel(a.status)}</li>`)}
             </ul>
           </details>` : ''}
       </div>
@@ -139,7 +85,7 @@ export default async function inicio(root) {
   root.innerHTML = String(html`
     <div class="faixa">
       <div class="faixa__topo">
-        <h1 class="faixa__titulo">${WEEKDAYS[new Date().getDay()]} ${formatDateShort(t)}</h1>
+        <h1 class="faixa__titulo">${WEEKDAYS[weekday(t)]} ${formatDateShort(t)}</h1>
         <span class="faixa__marca"><img src="${new URL('../../img/logo-700.webp', import.meta.url).href}" width="136" height="34" alt="" id="inicio-marca"></span>
       </div>
       <form class="busca" role="search" id="busca-form">
@@ -150,10 +96,14 @@ export default async function inicio(root) {
         <span class="busca__limpar" hidden id="busca-limpar"><button type="button" class="btn btn--texto btn--icone" aria-label="Limpar busca">${icon('x')}</button></span>
       </form>
       <div id="exemplo"></div>
+      <div id="online"></div>
       <div id="quadro"></div>
       <div class="faixa__acoes">
         <a class="btn btn--cal btn--pequeno" href="#/novo">${icon('plus')}Novo agendamento</a>
+        <a class="btn btn--giz btn--pequeno" href="#/clientes">Clientes e veículos</a>
+        <a class="btn btn--giz btn--pequeno" href="#/operacao">Operação e exportação</a>
         <a class="btn btn--giz btn--pequeno" href="#/ajustes?secao=folgas">${icon('calendar-off')}Marcar folga</a>
+        <button class="btn btn--giz btn--pequeno" type="button" id="fechar-agenda" data-online="fechar" hidden>${icon('ban')}Fechar agenda</button>
       </div>
     </div>
     <div id="resultados" aria-live="polite"></div>
@@ -173,23 +123,46 @@ export default async function inicio(root) {
     const baseUrl = api.publicBaseUrl();
     $('#inicio-marca', root).alt = settings.name;
     $('#quadro', root).innerHTML = String(board(data));
-    $('#exemplo', root).innerHTML = data.exampleData
-      ? String(html`<p class="faixa__exemplo">${icon('info')}<span>Clientes, carros e telefones de exemplo. <a href="#/ajustes?secao=dados">Começar do zero</a></span></p>`)
+    $('#exemplo', root).innerHTML = data.shop.isExample
+      ? String(html`<p class="faixa__exemplo">${icon('info')}<span>Serviços e preços ainda são de exemplo e aparecem assim no link. <a href="#/servicos">Ajustar serviços</a></span></p>`)
       : '';
+    $('#online', root).innerHTML = data.bookingOpen
+      ? ''
+      : String(html`<p class="faixa__exemplo faixa__fechada">${icon('ban')}<span><strong>Agenda online fechada.</strong> O link não aceita novos agendamentos. <button type="button" class="link-faixa" data-online="abrir">Reabrir agenda</button></span></p>`);
+    $('#fechar-agenda', root).hidden = !data.bookingOpen;
     home.innerHTML = String(sections(data, settings, baseUrl));
   }
+
+  // Fechar/reabrir a agenda online (o botão e o aviso ficam na faixa, que nasce a cada visita).
+  $('.faixa', root).addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-online]');
+    if (!button) return;
+    const open = button.dataset.online === 'abrir';
+    if (!open && !window.confirm('Fechar a agenda online? O link para de aceitar agendamentos até você reabrir.')) return;
+    button.disabled = true;
+    try {
+      await api.saveSettings({ bookingOpen: open });
+      toast(open ? 'Agenda reaberta. O link voltou a aceitar agendamentos.' : 'Agenda fechada. Reabra aqui ou em Ajustes.');
+      await loadHome();
+    } catch (error) {
+      button.disabled = false;
+      toast(error.message);
+    }
+  });
 
   async function runSearch() {
     const q = input.value.trim();
     query = q;
     $('#busca-limpar', root).hidden = !q;
+    const seq = ++searchSeq;
     if (q.length < 2) {
       results.innerHTML = '';
       home.hidden = false;
       return;
     }
-    const seq = ++searchSeq;
-    const found = await api.search(q);
+    let found;
+    try { found = await api.search(q); }
+    catch (error) { if (seq === searchSeq) { results.innerHTML = String(html`<p class="secao" role="alert">${error.message || 'Não deu para buscar. Tente novamente.'}</p>`); } return; }
     if (seq !== searchSeq) return;
     home.hidden = true;
     results.innerHTML = String(html`
@@ -225,9 +198,8 @@ export default async function inicio(root) {
 
   await loadHome();
 
-  const tick = setInterval(() => { if (!query) loadHome(); }, 60_000);
   return {
-    cleanup: () => clearInterval(tick),
+    cleanup: () => { clearTimeout(debounce); searchSeq++; },
     refresh: () => (query ? runSearch() : loadHome()),
   };
 }

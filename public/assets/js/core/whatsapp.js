@@ -38,7 +38,7 @@ export function returnMessage({ settings, ret, customer, service, baseUrl }) {
 export function appointmentMessage({ settings, appointment, customer, service }) {
   return (
     `Oi, ${firstName(customer.name)}! Aqui é da ${settings.name}. ` +
-    `Confirmando seu horário: ${service.name.toLowerCase()} na ${formatDateLong(appointment.date)}, às ${appointment.start}. ` +
+    `Confirmando: ${service.name.toLowerCase()} na ${formatDateLong(appointment.date)}. Pode trazer o carro ${settings.bookingMode === 'horario' ? 'às' : 'a partir das'} ${appointment.start}. ` +
     `Endereço: ${settings.address}. Qualquer coisa, é só responder aqui.`
   );
 }

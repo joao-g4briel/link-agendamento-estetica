@@ -2,13 +2,19 @@
   "name": "link-agendamento-estetica",
   "version": "0.1.0",
   "private": true,
-  "description": "Link de agendamento para a bio de uma estética automotiva, com agenda e fila de retorno por WhatsApp.",
+  "description": "Link de agendamento da Mão de Ouro Estética Automotiva, com agenda e fila de retorno por WhatsApp.",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
-    "start": "node server.mjs",
-    "dev": "node server.mjs"
+    "start": "node --env-file-if-exists=.env.local server.mjs",
+    "dev": "node --env-file-if-exists=.env.local server.mjs",
+    "local": "node --env-file-if-exists=.env.local scripts/local.mjs",
+    "test": "node --test --test-isolation=none scripts/servicos.test.mjs scripts/regras.test.mjs scripts/api.test.mjs",
+    "banco": "node --env-file-if-exists=.env.local scripts/banco.mjs"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.0"
   }
 }

@@ -1,7 +1,7 @@
 // Agenda da semana: um bloco por dia, ocupação em tinta sobre giz.
 
 import * as api from '../data/api.js';
-import { addDays, parseISODate, startOfWeek, today } from '../core/dates.js';
+import { addDays, isISODate, parseISODate, startOfWeek, today } from '../core/dates.js';
 import { formatDateLong, MONTHS } from '../core/format.js';
 import { $, appointmentRow, bindAppointmentActions, capitalize, hourLabel, html, icon } from './ui.js';
 
@@ -13,7 +13,7 @@ function weekLabel(from) {
     : `${a.getDate()} de ${MONTHS[a.getMonth()]} a ${b.getDate()} de ${MONTHS[b.getMonth()]}`;
 }
 
-function dayBlock(day, settings) {
+function dayBlock(day, settings, limit) {
   const isToday = day.date === today();
   const past = day.date < today();
   const active = day.items.filter((a) => a.status !== 'cancelado');
@@ -27,17 +27,21 @@ function dayBlock(day, settings) {
       <div class="secao__cabeca">
         <h2 class="secao__titulo" id="d-${day.date}">${capitalize(formatDateLong(day.date))} ${isToday ? html`<span class="selo selo--hoje">hoje</span>` : ''}</h2>
         ${day.hours && !day.block ? html`
-          <span class="carga" title="${Math.round(day.load.ratio * 100)}% das vagas ocupadas">
-            <span class="carga__texto">${active.length} ${active.length === 1 ? 'carro' : 'carros'} · ${hourLabel(day.hours.open)}–${hourLabel(day.hours.close)}</span>
+          <span class="carga" title="${day.load.cars} carros reservados no dia">
+            <span class="carga__texto">${limit ? `${day.load.cars} de ${limit} carros` : `${day.load.cars} carros`} · ${hourLabel(day.hours.open)}–${hourLabel(day.hours.close)}</span>
+            ${day.load.full && !past ? html`<span class="selo selo--hoje">lotado</span>` : ''}
             <span class="carga__barra" aria-hidden="true"><span style="width:${Math.round(day.load.ratio * 100)}%"></span></span>
           </span>` : ''}
       </div>
-      ${status || html`<ul class="lista" role="list">${active.map((a) => appointmentRow(a, { settings }))}</ul>`}
+      ${status || ''}
+      ${active.length ? html`<ul class="lista" role="list">${active.map((a) => appointmentRow(a, { settings }))}</ul>` : ''}
+      ${day.items.some(a => a.status === 'cancelado') ? html`<details class="dobra"><summary>Cancelados (${day.items.filter(a => a.status === 'cancelado').length})</summary><ul class="lista" role="list">${day.items.filter(a => a.status === 'cancelado').map(a => appointmentRow(a, { settings }))}</ul></details>` : ''}
     </section>`;
 }
 
 export default async function agenda(root, { params }) {
-  const from = startOfWeek(params.get('semana') || today());
+  const week = params.get('semana');
+  const from = startOfWeek(isISODate(week) ? week : today());
   const thisWeek = startOfWeek(today());
 
   root.innerHTML = String(html`
@@ -61,7 +65,7 @@ export default async function agenda(root, { params }) {
 
   async function load() {
     const [data, { settings }] = await Promise.all([api.getAgenda(from, 7), api.getSettings()]);
-    list.innerHTML = String(html`${data.days.map((d) => dayBlock(d, settings))}`);
+    list.innerHTML = String(html`${data.days.map((d) => dayBlock(d, settings, data.maxCarsPerDay))}`);
   }
 
   await load();

@@ -235,6 +235,7 @@ a { color: inherit; text-underline-offset: 0.22em; text-decoration-thickness: 1p
 
 .etapa__cabeca {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
@@ -400,7 +401,14 @@ a { color: inherit; text-underline-offset: 0.22em; text-decoration-thickness: 1p
   max-width: 60ch;
   font-size: 0.9375rem;
   line-height: 1.45;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
+
+.servico__desc [role='listitem'] { display: block; margin-top: 4px; padding-left: 1em; text-indent: -1em; }
+.servico__desc [role='listitem']::before { content: '• '; }
+.check-publica { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.check-publica input { width: 22px; height: 22px; accent-color: var(--ouro); }
 
 .servico[aria-pressed='true'] {
   background: var(--ouro-placa);
@@ -610,6 +618,11 @@ a { color: inherit; text-underline-offset: 0.22em; text-decoration-thickness: 1p
 
 .vazio-giz a { color: var(--ouro); font-weight: 700; }
 
+/* Agenda fechada pelo dono: a tabela fica só para consulta. */
+.etapa__ajuda--fechada { color: var(--prata); font-weight: 600; }
+.etapa__ajuda--fechada a { color: var(--ouro); font-weight: 700; }
+.servico:disabled { cursor: default; background: transparent; }
+
 /* ------------------------------------------------------------------ */
 /* Ficha                                                               */
 
@@ -642,6 +655,7 @@ a { color: inherit; text-underline-offset: 0.22em; text-decoration-thickness: 1p
 }
 
 .campo input,
+.campo select,
 .campo textarea {
   width: 100%;
   min-height: 52px;
@@ -667,9 +681,11 @@ a { color: inherit; text-underline-offset: 0.22em; text-decoration-thickness: 1p
 .campo textarea::placeholder { color: var(--prata-3); opacity: 1; }
 
 .campo input:hover,
+.campo select:hover,
 .campo textarea:hover { border-color: #8d8576; }
 
 .campo input:focus-visible,
+.campo select:focus-visible,
 .campo textarea:focus-visible {
   border-color: var(--ouro);
   outline: 2px solid rgb(243 179 44 / 0.35);
@@ -677,6 +693,46 @@ a { color: inherit; text-underline-offset: 0.22em; text-decoration-thickness: 1p
 }
 
 .campo[data-erro] input { border-color: var(--erro); }
+
+.campo__rotulo { font-weight: 600; }
+
+.portes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.campo label.porte,
+.porte {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-height: 68px;
+  padding: 10px 4px;
+  border: 1.5px solid var(--campo-borda);
+  border-radius: 4px;
+  background: var(--preto-2);
+  color: var(--prata);
+  cursor: pointer;
+}
+
+.porte input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.porte strong { color: var(--ouro); font-size: 1.0625rem; }
+.porte:hover { border-color: #8d8576; }
+.porte:has(input:checked) { border-color: var(--ouro); background: var(--ouro-placa); color: var(--tinta); }
+.porte:has(input:checked) strong { color: var(--tinta); }
+.porte:has(input:focus-visible) { outline: 2px solid rgb(243 179 44 / 0.35); outline-offset: 2px; }
+.campo[data-erro] .porte { border-color: var(--erro); }
 
 .campo__dica {
   margin: 0;
@@ -904,6 +960,9 @@ a { color: inherit; text-underline-offset: 0.22em; text-decoration-thickness: 1p
   line-height: 1;
 }
 
+/* Agendamento por dia: "a partir das 8h" no lugar da hora marcada. */
+.pintado__hora--chegada { margin-top: 10px; font-size: clamp(1.4rem, 6.6vw, 2.1rem); }
+
 .tinta { display: inline-block; }
 
 .pintado__check {
@@ -1007,7 +1066,7 @@ a { color: inherit; text-underline-offset: 0.22em; text-decoration-thickness: 1p
     animation-delay: calc(var(--i, 0) * 190ms + 120ms), calc(var(--i, 0) * 190ms + 520ms);
   }
 
-  .pintado .pintado__hora.tinta { background-image: var(--brilho), var(--prata-metal); }
+  .pintado .pintado__hora.tinta { background-image: var(--brilho), var(--ouro-metal); }
 
   .pintado__ficha,
   .pintado .giz-nota,

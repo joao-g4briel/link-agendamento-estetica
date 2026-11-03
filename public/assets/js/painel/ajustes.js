@@ -1,11 +1,11 @@
-// Ajustes: dados da estética, funcionamento, regras da agenda, folgas,
-// mensagem de retorno, link público e dados de exemplo.
+// Ajustes: agenda online aberta/fechada, dados da estética, funcionamento,
+// regras da agenda, folgas, mensagem de retorno, link público e dados de exemplo.
 
 import * as api from '../data/api.js';
 import { today } from '../core/dates.js';
 import { formatDateShort, formatPhone } from '../core/format.js';
 import { DEFAULT_RETURN_TEMPLATE, fillTemplate } from '../core/whatsapp.js';
-import { $, $$, html, icon, showFieldErrors, toast } from './ui.js';
+import { $, $$, html, icon, showFieldErrors, toast, bindSubmit } from './ui.js';
 
 const DAYS = [
   [1, 'Segunda'], [2, 'Terça'], [3, 'Quarta'], [4, 'Quinta'], [5, 'Sexta'], [6, 'Sábado'], [0, 'Domingo'],
@@ -54,6 +54,14 @@ function blocksList(blocks) {
     </li>`)}</ul>`;
 }
 
+function onlineState(open) {
+  return open
+    ? html`<p class="campo__dica"><strong>Aberta.</strong> Os clientes agendam pelo link.</p>
+      <div class="form__acoes" style="padding:0"><button class="btn btn--linha" type="button" data-online="fechar">${icon('ban')}Fechar agenda</button></div>`
+    : html`<p class="campo__dica"><strong>Fechada.</strong> O link mostra os serviços, mas não aceita agendamento e pede para chamar no WhatsApp. Pelo painel você continua agendando.</p>
+      <div class="form__acoes" style="padding:0"><button class="btn btn--primario" type="button" data-online="abrir">${icon('check')}Reabrir agenda</button></div>`;
+}
+
 export default async function ajustes(root, { params }) {
   const { settings, blocks } = await api.getSettings();
   const publicUrl = api.publicBaseUrl();
@@ -65,6 +73,11 @@ export default async function ajustes(root, { params }) {
     </div>
 
     <div class="form">
+      <section class="form__grupo" id="agenda-online" aria-labelledby="t-online">
+        <h2 class="secao__titulo" id="t-online">Agenda online</h2>
+        <div id="online-estado">${onlineState(settings.bookingOpen !== false)}</div>
+      </section>
+
       <form class="form__grupo" id="f-estetica" novalidate aria-labelledby="t-estetica">
         <h2 class="secao__titulo" id="t-estetica">A estética</h2>
         <div class="form__linha form__linha--2">
@@ -81,7 +94,7 @@ export default async function ajustes(root, { params }) {
 
       <form class="form__grupo" id="f-horas" novalidate aria-labelledby="t-horas">
         <h2 class="secao__titulo" id="t-horas">Funcionamento</h2>
-        <p class="campo__dica">Os horários de chegada do carro. A pausa só bloqueia chegadas: um serviço longo pode atravessar o almoço.</p>
+        <p class="campo__dica">Defina os horários de chegada. Durante a pausa não são aceitas chegadas.</p>
         <div class="horas">${hoursRows(settings.hours)}</div>
         <div class="form__acoes" style="padding:0"><button class="btn btn--primario" type="submit">${icon('check')}Salvar horários</button></div>
       </form>
@@ -90,9 +103,19 @@ export default async function ajustes(root, { params }) {
         <h2 class="secao__titulo" id="t-agenda">Regras da agenda</h2>
         <div class="form__linha form__linha--2">
           <div class="campo">
-            <label for="a-vagas">Carros ao mesmo tempo</label>
-            <input id="a-vagas" name="capacity" type="number" inputmode="numeric" min="1" max="12" value="${settings.capacity}">
-            <p class="campo__dica">Quantas vagas ou boxes você atende juntos.</p>
+            <label for="a-modo">Como o cliente agenda</label>
+            <select id="a-modo" name="bookingMode">${[['dia', 'Escolhe só o dia'], ['horario', 'Escolhe o dia e o horário']].map(([v, l]) => opt(v, l, settings.bookingMode || 'dia'))}</select>
+            <p class="campo__dica">Só o dia: o carro chega a partir da abertura. Dia e horário: o cliente escolhe a hora de chegada no link.</p>
+          </div>
+          <div class="campo" id="campo-por-horario" ${settings.bookingMode === 'horario' ? '' : html`hidden`}>
+            <label for="a-por-horario">Carros por horário</label>
+            <input id="a-por-horario" name="carsPerSlot" type="number" inputmode="numeric" min="1" max="12" value="${settings.carsPerSlot || 1}">
+            <p class="campo__dica">Quantos carros podem chegar no mesmo horário. Quando lota, o horário some do link. Pelo painel você ainda pode encaixar.</p>
+          </div>
+          <div class="campo">
+            <label for="a-limite">Limite de carros por dia</label>
+            <input id="a-limite" name="maxCarsPerDay" type="number" inputmode="numeric" min="0" max="50" value="${settings.maxCarsPerDay || 0}">
+            <p class="campo__dica">0 = sem limite. Ao chegar no limite, o dia aparece lotado no link. Pelo painel você ainda pode encaixar.</p>
           </div>
           <div class="campo">
             <label for="a-passo">Horários a cada</label>
@@ -107,8 +130,7 @@ export default async function ajustes(root, { params }) {
             <select id="a-frente" name="horizonDays">${HORIZON.map((d) => opt(d, `os próximos ${d} dias`, settings.horizonDays))}</select>
           </div>
         </div>
-        <label class="check"><input type="checkbox" name="autoComplete" ${settings.autoComplete ? html`checked` : ''}>
-          <span>Concluir sozinho os carros de dias que já passaram<small>Assim o retorno é marcado mesmo se você esquecer de tocar em Concluir. Dá para corrigir depois para “não veio”.</small></span></label>
+        <p class="campo__dica">Atendimentos de dias anteriores ficam na fila “Para revisar”. O retorno só é criado quando você confirma a conclusão.</p>
         <div class="form__acoes" style="padding:0"><button class="btn btn--primario" type="submit">${icon('check')}Salvar regras</button></div>
       </form>
 
@@ -156,20 +178,35 @@ export default async function ajustes(root, { params }) {
         </div>
       </form>
 
-      <section class="form__grupo" id="dados" aria-labelledby="t-demo">
-        <h2 class="secao__titulo" id="t-demo">Dados desta versão</h2>
-        <p class="campo__dica">Os dados ficam guardados só neste navegador até o sistema ganhar um servidor. O painel ainda não tem senha.</p>
+      <section class="form__grupo" id="sessao" aria-labelledby="t-sessao">
+        <h2 class="secao__titulo" id="t-sessao">Acesso ao painel</h2>
+        <p class="campo__dica">Este aparelho fica conectado por 30 dias. Saia se ele não for seu.</p>
         <div class="form__acoes" style="padding:0">
-          <button class="btn btn--primario" type="button" id="do-zero" data-rotulo="Começar do zero">${icon('trash')}<span>Começar do zero</span></button>
-          <button class="btn btn--linha btn--perigo" type="button" id="recomecar" data-rotulo="Voltar aos dados de exemplo">${icon('rotate-ccw')}<span>Voltar aos dados de exemplo</span></button>
+          <button class="btn btn--linha" type="button" id="sair">${icon('x')}Sair do painel</button>
         </div>
-        <p class="campo__dica">“Começar do zero” apaga clientes, agenda, retornos e folgas de exemplo e mantém seus serviços e ajustes.</p>
       </section>
     </div>
   `);
 
+  // Agenda online
+  const onlineBox = $('#online-estado', root);
+  onlineBox.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-online]');
+    if (!button) return;
+    const open = button.dataset.online === 'abrir';
+    button.disabled = true;
+    try {
+      await api.saveSettings({ bookingOpen: open });
+      onlineBox.innerHTML = String(onlineState(open));
+      toast(open ? 'Agenda reaberta. O link voltou a aceitar agendamentos.' : 'Agenda fechada. O link não aceita novos agendamentos.');
+    } catch (error) {
+      button.disabled = false;
+      toast(error.message);
+    }
+  });
+
   // A estética
-  $('#f-estetica', root).addEventListener('submit', async (event) => {
+  bindSubmit($('#f-estetica', root), async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
     const data = Object.fromEntries(new FormData(form));
@@ -191,7 +228,7 @@ export default async function ajustes(root, { params }) {
     $('.horas__campos', row).hidden = !event.target.checked;
     $('.horas__fechado', row).hidden = event.target.checked;
   });
-  hoursForm.addEventListener('submit', async (event) => {
+  bindSubmit(hoursForm, async (event) => {
     event.preventDefault();
     const data = new FormData(hoursForm);
     const hours = {};
@@ -218,31 +255,46 @@ export default async function ajustes(root, { params }) {
   });
 
   // Regras da agenda
-  $('#f-agenda', root).addEventListener('submit', async (event) => {
+  $('#a-modo', root).addEventListener('change', (event) => {
+    $('#campo-por-horario', root).hidden = event.target.value !== 'horario';
+  });
+  bindSubmit($('#f-agenda', root), async (event) => {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const capacity = Math.min(12, Math.max(1, Number(data.get('capacity')) || 1));
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const maxCarsPerDay = Number(data.get('maxCarsPerDay'));
+    if (!Number.isInteger(maxCarsPerDay) || maxCarsPerDay < 0 || maxCarsPerDay > 50) {
+      showFieldErrors(form, { maxCarsPerDay: 'Use um número inteiro de 0 a 50.' });
+      return;
+    }
+    const carsPerSlot = Number(data.get('carsPerSlot'));
+    if (!Number.isInteger(carsPerSlot) || carsPerSlot < 1 || carsPerSlot > 12) {
+      showFieldErrors(form, { carsPerSlot: 'Use um número inteiro de 1 a 12.' });
+      return;
+    }
+    showFieldErrors(form, {});
     await api.saveSettings({
-      capacity,
+      bookingMode: data.get('bookingMode'),
+      carsPerSlot,
+      maxCarsPerDay,
       slotStep: Number(data.get('slotStep')),
       minNoticeMinutes: Number(data.get('minNoticeMinutes')),
       horizonDays: Number(data.get('horizonDays')),
-      autoComplete: data.get('autoComplete') === 'on',
     });
-    event.currentTarget.querySelector('[name="capacity"]').value = capacity;
     toast('Regras da agenda salvas.');
   });
 
   // Folgas
   const blocksBox = $('#lista-folgas', root);
-  $('#f-folga', root).addEventListener('submit', async (event) => {
+  bindSubmit($('#f-folga', root), async (event) => {
     event.preventDefault();
-    const data = Object.fromEntries(new FormData(event.currentTarget));
+    const form = event.currentTarget;
+    const data = Object.fromEntries(new FormData(form));
     try {
       const { affected } = await api.addBlock(data);
       const fresh = await api.getSettings();
       blocksBox.innerHTML = String(blocksList(fresh.blocks));
-      event.currentTarget.reset();
+      form.reset();
       toast(affected
         ? `Folga marcada. Atenção: ${affected} ${affected === 1 ? 'carro já estava agendado' : 'carros já estavam agendados'} nesse período.`
         : 'Folga marcada. Esses dias somem do link.');
@@ -253,9 +305,10 @@ export default async function ajustes(root, { params }) {
   blocksBox.addEventListener('click', async (event) => {
     const button = event.target.closest('[data-remover]');
     if (!button) return;
-    await api.removeBlock(button.dataset.remover);
-    blocksBox.innerHTML = String(blocksList((await api.getSettings()).blocks));
-    toast('Folga removida.');
+    button.disabled = true;
+    try { await api.removeBlock(button.dataset.remover); blocksBox.innerHTML = String(blocksList((await api.getSettings()).blocks)); toast('Folga removida.'); }
+    catch (error) { toast(error.message); }
+    finally { button.disabled = false; }
   });
 
   // Mensagem
@@ -283,7 +336,7 @@ export default async function ajustes(root, { params }) {
     msgField.value = DEFAULT_RETURN_TEMPLATE;
     renderPreview();
   });
-  msgForm.addEventListener('submit', async (event) => {
+  bindSubmit(msgForm, async (event) => {
     event.preventDefault();
     if (!msgField.value.includes('{link}')) {
       toast('Inclua {link} na mensagem: é por ele que o cliente agenda o retorno.');
@@ -305,7 +358,7 @@ export default async function ajustes(root, { params }) {
       toast('Selecionei o link; copie com o menu do celular.');
     }
   });
-  $('#f-link', root).addEventListener('submit', async (event) => {
+  bindSubmit($('#f-link', root), async (event) => {
     event.preventDefault();
     const value = $('#a-link', root).value.trim().replace(/\/$/, '');
     if (value && !/^https?:\/\//.test(value)) {
@@ -317,35 +370,21 @@ export default async function ajustes(root, { params }) {
     toast('Link salvo.');
   });
 
-  // Começar do zero / voltar aos exemplos: pedem um segundo toque.
-  const confirmTwice = (button, action) => {
-    const label = button.querySelector('span');
-    button.addEventListener('click', async () => {
-      if (button.dataset.confirmar !== 'sim') {
-        button.dataset.confirmar = 'sim';
-        label.textContent = 'Toque de novo para confirmar';
-        setTimeout(() => {
-          button.dataset.confirmar = '';
-          label.textContent = button.dataset.rotulo;
-        }, 4000);
-        return;
-      }
-      await action();
-    });
-  };
-  confirmTwice($('#do-zero', root), async () => {
-    await api.clearExampleData();
-    toast('Pronto: agenda zerada. Seus serviços e ajustes continuam.');
-    window.location.hash = '#/';
-  });
-  confirmTwice($('#recomecar', root), async () => {
-    await api.resetPlaceholder();
-    toast('Pronto: dados de exemplo de volta.');
-    window.location.hash = '#/';
+  // Sair
+  $('#sair', root).addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      await api.logout();
+      window.location.reload();
+    } catch (error) {
+      button.disabled = false;
+      toast(error.message || 'Não deu para sair. Tente de novo.');
+    }
   });
 
   if (params.get('secao')) {
-    const target = $(`#${params.get('secao')}`, root);
+    const target = $(`#${CSS.escape(params.get('secao'))}`, root);
     if (target) requestAnimationFrame(() => {
       target.scrollIntoView({ block: 'start' });
       target.querySelector('input')?.focus({ preventScroll: true });

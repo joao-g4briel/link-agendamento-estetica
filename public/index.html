@@ -4,8 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Mão de Ouro · Agende seu horário</title>
-  <meta name="description" content="Mão de Ouro Estética Automotiva, em Igarassu. Escolha o serviço, veja os horários livres e agende sem precisar chamar no WhatsApp.">
+  <meta name="description" content="Mão de Ouro Estética Automotiva, em Igarassu. Escolha o serviço, veja os dias livres e agende sem precisar chamar no WhatsApp.">
   <meta name="theme-color" content="#0b0a08">
+  <meta name="referrer" content="no-referrer">
   <meta property="og:title" content="Mão de Ouro · Estética Automotiva">
   <meta property="og:description" content="Escolha o serviço e agende seu horário em poucos toques.">
   <meta property="og:image" content="assets/img/compartilhar.jpg">
@@ -49,7 +50,7 @@
           </h2>
           <p class="giz-anotacao" id="nota-livre" hidden></p>
         </div>
-        <p class="etapa__ajuda" id="ajuda-servico">Toque no serviço para ver os horários livres.</p>
+        <p class="etapa__ajuda" id="ajuda-servico">Toque no serviço para ver os dias livres.</p>
         <ul class="tabela" id="tabela" role="list" aria-busy="true"></ul>
       </section>
 
@@ -70,6 +71,12 @@
         </h2>
         <form class="ficha" id="ficha" novalidate>
           <div class="ficha__erro" id="ficha-erro" role="alert" tabindex="-1" hidden></div>
+          <div class="campo" id="campo-porte" hidden>
+            <span class="campo__rotulo" id="porte-rotulo">Porte do carro</span>
+            <div class="portes" id="portes" role="radiogroup" aria-labelledby="porte-rotulo"></div>
+            <p class="campo__erro" id="e-size" hidden></p>
+          </div>
+          <label class="check-publica" id="campo-adicional" hidden><input id="f-adicional" type="checkbox"> <span id="adicional-texto"></span></label>
           <div class="campo">
             <label for="f-nome">Nome</label>
             <input id="f-nome" name="name" autocomplete="name" autocapitalize="words" required>
@@ -97,9 +104,12 @@
           </div>
           <div class="campo">
             <label for="f-obs">Algo que a gente deva saber? <span class="opcional">(opcional)</span></label>
-            <textarea id="f-obs" name="notes" rows="2" placeholder="Ex.: pelo de cachorro no banco de trás"></textarea>
+            <textarea id="f-obs" name="notes" rows="2" maxlength="300" placeholder="Ex.: pelo de cachorro no banco de trás"></textarea>
           </div>
 
+          <label class="check-publica"><input id="lembrar-dados" type="checkbox"> Lembrar meus dados neste aparelho</label>
+          <button class="link-giz" type="button" id="limpar-dados">Limpar dados salvos neste aparelho</button>
+          <p class="campo__dica">Nome, WhatsApp e dados do carro são usados para atender sua reserva e acompanhar o retorno. Para corrigir ou remover seu cadastro, fale com a estética pelo WhatsApp.</p>
           <div class="resumo" id="resumo" aria-live="polite"></div>
           <button class="placa-botao" id="confirmar" type="submit">
             <span class="placa-botao__texto">Confirmar agendamento</span>

@@ -1,4 +1,4 @@
-# Product
+﻿# Product
 
 <!-- impeccable:product-schema 1 -->
 
@@ -8,8 +8,7 @@ web
 
 ## Stack
 
-Delegated, with one user constraint: "o banco será placeholder por enquanto".
-Chosen: static HTML/CSS/JS (ES modules, no build step), served by a zero-dependency Node script for local preview (Node 24 is installed). All data goes through one async API module backed by a placeholder store (seeded data persisted in the browser's localStorage), so a real backend can replace it later without touching the screens.
+Static HTML/CSS/JS (ES modules, no build step) for the screens. Data goes through `/api` routes (`server/app.mjs`, rules in `server/regras.js`) backed by Postgres on Neon; on Vercel, `api/index.js` serves every route, and `server.mjs` serves the same locally.
 
 ## Users
 
@@ -31,15 +30,15 @@ Cada serviço tem o seu ciclo de retorno. Quando o carro é concluído, o próxi
 - Público em português do Brasil, preços em real (R$), fuso America/Sao_Paulo.
 - Entrada principal: link na bio do Instagram, aberto no navegador interno do app, em telas de celular.
 - WhatsApp é o canal de conversa com o cliente. Aviso de retorno é por **WhatsApp com 1 clique** (link wa.me com mensagem pronta, aberto a partir do painel); não há envio automático por API.
-- Serviços de estética têm durações longas e variadas (de 1 hora a um dia inteiro) e o espaço é limitado (poucas vagas/boxes ao mesmo tempo).
+- Agendamento por dia ou por horário (o dono escolhe em Ajustes), com limite de carros por dia e por horário. Por exigência do dono, não há cadastro nem cálculo de duração dos serviços ou ocupação por tempo de box.
 
 ## Capabilities and Constraints
 
 - Uma estética só; sem multiempresa, sem cadastro de outros negócios.
-- Link público: escolher serviço → ver dias e horários livres → informar nome, WhatsApp e carro → confirmação.
-- Painel do dono: agenda (dia/semana), concluir / faltou / cancelar, fila de retornos com WhatsApp em 1 clique, serviços com duração, preço e intervalo de retorno, horário de funcionamento, vagas simultâneas e folgas.
-- Banco de dados é placeholder (dados de exemplo no navegador). Nada é compartilhado entre aparelhos até existir um backend.
-- Undecided: pagamento/sinal online, lembrete na véspera, login real do painel, serviços e preços reais.
+- Link público: escolher serviço → ver dias livres → informar nome, WhatsApp e carro → confirmação, com link seguro para consultar, remarcar ou cancelar dentro do prazo.
+- Painel do dono: agenda por dia/semana, editar/remarcar, estados de atendimento e revisão dos dias passados, fila de retornos por veículo, confirmação manual de envio no WhatsApp, serviços com descrição em lista, preço e intervalo de retorno, funcionamento, limite diário e folgas. Inclui ficha de clientes/veículos, lista de espera, exportação e registro de alterações.
+- Dados no Postgres (Neon), compartilhados entre o link público e o painel. Painel protegido por senha (`PAINEL_SENHA`).
+- Undecided: pagamento/sinal online, lembrete na véspera, serviços e preços reais.
 
 ## Brand Commitments
 

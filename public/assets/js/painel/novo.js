@@ -2,21 +2,24 @@
 
 import * as api from '../data/api.js';
 import { addDays, today } from '../core/dates.js';
-import { formatDateLong, formatDuration, formatPhone, formatPlate, formatPrice } from '../core/format.js';
+import { formatDateLong, formatPhone, formatPlate, formatPrice } from '../core/format.js';
+import { needsSize, priceForSize, SIZES, totalFor } from '../core/precos.js';
 import { $, capitalize, html, icon, showFieldErrors, toast } from './ui.js';
 
 export default async function novo(root, { params }) {
   const [services, { settings }] = await Promise.all([api.listServices(), api.getSettings()]);
   const active = services.filter((s) => s.active);
+  const editId = params.get('editar');
+  let cars = [];
 
   // Pré-preenchimento: cliente da busca ou retorno da fila.
   let preset = { serviceId: active[0]?.id, name: '', phone: '', vehicle: '', plate: '', returnToken: undefined };
   if (params.get('cliente')) {
-    const customers = await api.listCustomers();
-    const c = customers.find((x) => x.id === params.get('cliente'));
+    const c = await api.getCustomer(params.get('cliente'));
     if (c) {
+      cars = c.cars;
       const car = c.cars[c.cars.length - 1] || {};
-      preset = { ...preset, name: c.name, phone: c.phone, vehicle: car.vehicle || '', plate: car.plate || '' };
+      preset = { ...preset, name: c.name, phone: c.phone, vehicle: car.vehicle || '', plate: car.plate || '', vehicleId: car.id, size: car.size };
     }
   }
   if (params.get('retorno')) {
@@ -24,18 +27,23 @@ export default async function novo(root, { params }) {
       const { ret } = await api.getReturnMessageData(params.get('retorno'));
       preset = {
         serviceId: ret.serviceId, name: ret.customer.name, phone: ret.customer.phone,
-        vehicle: ret.vehicle, plate: ret.plate, returnToken: ret.token,
+        vehicle: ret.vehicle, plate: ret.plate, returnToken: ret.token, vehicleId: ret.vehicleId, size: ret.size,
       };
     } catch {
       // Retorno sumiu: segue com o formulário vazio.
     }
   }
 
-  const state = { date: params.get('data') || today(), time: null, encaixe: false };
+  if (editId) {
+    const a = await api.getAppointment(editId);
+    if (!active.some(s => s.id === a.serviceId)) active.push(a.service);
+    preset = { ...a, name: a.customer.name, phone: a.customer.phone, returnToken: undefined };
+  }
+  const state = { date: preset.date || params.get('data') || today(), time: null, encaixe: false, key: crypto.randomUUID() };
 
   root.innerHTML = String(html`
     <div class="faixa">
-      <div class="faixa__topo"><h1 class="faixa__titulo">Novo agendamento</h1></div>
+      <div class="faixa__topo"><h1 class="faixa__titulo">${editId ? 'Editar / remarcar' : 'Novo agendamento'}</h1></div>
       <p class="faixa__sub">${preset.returnToken ? `Retorno de ${preset.name}: o serviço já vem escolhido.` : 'Para quem chamou no WhatsApp ou passou na porta. Entra na agenda e some do link na hora.'}</p>
     </div>
     ${active.length ? '' : html`<section class="secao"><p class="vazio">Cadastre um serviço antes. <a href="#/servicos/novo">Criar serviço</a></p></section>`}
@@ -46,7 +54,7 @@ export default async function novo(root, { params }) {
           <div class="campo">
             <label for="n-servico">Serviço</label>
             <select id="n-servico" name="serviceId">
-              ${active.map((s) => html`<option value="${s.id}" ${s.id === preset.serviceId ? html`selected` : ''}>${s.name} · ${formatDuration(s.durationMin)} · ${formatPrice(s.priceCents)}</option>`)}
+              ${active.map((s) => html`<option value="${s.id}" ${s.id === preset.serviceId ? html`selected` : ''}>${s.name} · ${s.pricesBySize ? 'a partir de ' : ''}${formatPrice(s.priceCents)}</option>`)}
             </select>
           </div>
           <div class="campo">
@@ -54,8 +62,13 @@ export default async function novo(root, { params }) {
             <input id="n-dia" name="date" type="date" min="${today()}" max="${addDays(today(), 365)}" value="${state.date}">
           </div>
         </div>
+        <div class="campo" id="n-porte-campo" hidden>
+          <label for="n-porte">Porte do carro</label>
+          <select id="n-porte" name="size"></select>
+        </div>
+        <label class="check" id="n-adicional-campo" hidden><input type="checkbox" name="addon" ${preset.addonName ? html`checked` : ''}><span id="n-adicional-texto"></span></label>
         <div class="campo">
-          <span class="campo__rotulo" id="n-horarios-rotulo">Horários livres</span>
+          <span class="campo__rotulo" id="n-horarios-rotulo">Horários de chegada</span>
           <div id="n-horarios" aria-labelledby="n-horarios-rotulo" aria-live="polite"></div>
         </div>
         <label class="check"><input type="checkbox" name="encaixe" id="n-encaixe">
@@ -67,16 +80,17 @@ export default async function novo(root, { params }) {
       </fieldset>
       <fieldset class="form__grupo">
         <legend>Cliente e carro</legend>
+        ${cars.length ? html`<div class="campo"><label for="n-veiculo">Veículo do cliente</label><select id="n-veiculo">${cars.map(c => html`<option value="${c.id}" ${c.id === preset.vehicleId ? html`selected` : ''}>${c.vehicle} ${c.plate || ''}</option>`)}<option value="">Outro veículo</option></select></div>` : ''}
         <div class="form__linha form__linha--2">
           <div class="campo"><label for="n-nome">Nome</label><input id="n-nome" name="name" value="${preset.name}" autocomplete="off" autocapitalize="words"></div>
           <div class="campo"><label for="n-whats">WhatsApp</label><input id="n-whats" name="phone" type="tel" inputmode="numeric" value="${formatPhone(preset.phone)}" placeholder="(81) 91234-5678"></div>
           <div class="campo"><label for="n-carro">Carro</label><input id="n-carro" name="vehicle" value="${preset.vehicle}" placeholder="Modelo e cor"></div>
           <div class="campo"><label for="n-placa">Placa <span class="campo__dica">(opcional)</span></label><input id="n-placa" name="plate" value="${preset.plate}" autocapitalize="characters" spellcheck="false" maxlength="8" placeholder="ABC1D23"></div>
         </div>
-        <div class="campo"><label for="n-obs">Observação <span class="campo__dica">(opcional)</span></label><textarea id="n-obs" name="notes" rows="2"></textarea></div>
+        <div class="campo"><label for="n-obs">Observação <span class="campo__dica">(opcional)</span></label><textarea id="n-obs" name="notes" rows="2" maxlength="300">${preset.notes || ''}</textarea></div>
       </fieldset>
       <div class="form__acoes">
-        <button type="submit" class="btn btn--primario" id="n-salvar">${icon('check')}Agendar</button>
+        <button type="submit" class="btn btn--primario" id="n-salvar">${icon('check')}${editId ? 'Salvar e remarcar' : 'Agendar'}</button>
         <a class="btn btn--texto" href="#/agenda">Cancelar</a>
         <span class="campo__dica" id="n-resumo"></span>
       </div>
@@ -88,14 +102,48 @@ export default async function novo(root, { params }) {
   const form = $('#form-novo', root);
   const slotsBox = $('#n-horarios', root);
   const summary = $('#n-resumo', root);
+  let sequence = 0;
+  let selectedBeforeLoad = preset.start;
+  // Editando sem trocar o dia, a chegada original continua valendo mesmo sem vaga livre.
+  const keptArrival = () => (editId && form.date.value === preset.date ? preset.start : null);
+  const chosenTime = () => (state.encaixe ? form.startManual.value : state.time || keptArrival());
+  $('#n-veiculo', root)?.addEventListener('change', event => {
+    const car = cars.find(c => c.id === event.target.value);
+    preset.vehicleId = car?.id;
+    form.elements.vehicle.value = car?.vehicle || '';
+    form.elements.plate.value = car?.plate || '';
+    if (car?.size) { form.size.value = car.size; updateSummary(); }
+  });
+
+  const currentService = () => active.find((x) => x.id === form.serviceId.value);
+
+  /** Porte e adicional só aparecem no serviço que usa; o valor ao lado de cada porte acompanha o serviço. */
+  function renderExtras() {
+    const s = currentService();
+    const chosen = form.size.value || preset.size || '';
+    $('#n-porte-campo', root).hidden = !needsSize(s);
+    form.size.innerHTML = String(html`<option value="">Escolha o porte</option>${SIZES.map(({ code, label }) => html`<option value="${code}" ${code === chosen ? html`selected` : ''}>${label} · ${formatPrice(priceForSize(s, code))}</option>`)}`);
+    $('#n-adicional-campo', root).hidden = !s?.addon;
+    updateAddon();
+  }
+
+  function updateAddon() {
+    const { addon } = currentService() || {};
+    if (!addon) return;
+    const price = addon.prices[form.size.value];
+    $('#n-adicional-texto', root).textContent = `Adicionar ${addon.name}${price === undefined ? '' : ` (+ ${formatPrice(price)})`}`;
+  }
 
   function updateSummary() {
-    const s = active.find((x) => x.id === form.serviceId.value);
-    const time = state.encaixe ? form.startManual.value : state.time;
-    summary.textContent = s && time ? `${capitalize(formatDateLong(state.date))}, às ${time} · ${s.name}` : '';
+    const s = currentService();
+    const time = chosenTime();
+    const size = form.size.value;
+    const value = !needsSize(s) || size ? ` · ${formatPrice(totalFor(s, size, s.addon && form.addon.checked))}` : '';
+    summary.textContent = s && time ? `${capitalize(formatDateLong(state.date))}, às ${time} · ${s.name}${value}` : '';
   }
 
   async function loadSlots() {
+    const request = ++sequence;
     state.time = null;
     updateSummary();
     if (!form.date.value) {
@@ -104,16 +152,29 @@ export default async function novo(root, { params }) {
     }
     state.date = form.date.value;
     slotsBox.innerHTML = String(html`<p class="campo__dica">Procurando horários…</p>`);
-    const day = await api.getSlotsForPanel(form.serviceId.value, state.date);
+    let day;
+    try { day = await api.getSlotsForPanel(form.serviceId.value, state.date, editId); }
+    catch (error) {
+      if (request !== sequence) return;
+      slotsBox.innerHTML = String(html`<p class="campo__dica">${error.message}</p><button type="button" class="btn btn--linha" data-retry>Tentar de novo</button>`);
+      return;
+    }
+    if (request !== sequence) return;
     if (!day.slots.length) {
-      const why = { fechado: 'A estética está fechada nesse dia.', passou: 'Esse dia já passou.', lotado: 'Sem horário livre nesse dia.', 'não cabe no dia': 'O serviço não cabe no horário desse dia.' }[day.reason] || `Folga: ${day.reason}.`;
-      slotsBox.innerHTML = String(html`<p class="campo__dica">${why} Escolha outro dia ou use o encaixe.</p>`);
+      const why = { fechado: 'A estética está fechada nesse dia.', passou: 'Esse dia já passou.', lotado: 'Dia lotado: limite diário atingido.', encerrado: 'Não há mais horários de chegada neste dia.' }[day.reason] || `Folga: ${day.reason}.`;
+      slotsBox.innerHTML = String(keptArrival()
+        ? html`<p class="campo__dica">Chegada mantida às ${keptArrival()}. Para remarcar, escolha outro dia.</p>`
+        : html`<p class="campo__dica">${why} Escolha outro dia ou use o encaixe.</p>`);
+      updateSummary();
       return;
     }
     slotsBox.innerHTML = String(html`<div class="slots">${day.slots.map((s) => html`<button type="button" class="slot" data-hora="${s.time}" aria-pressed="false">${s.time}</button>`)}</div>`);
+    if (selectedBeforeLoad) { slotsBox.querySelector(`[data-hora="${selectedBeforeLoad}"]`)?.click(); selectedBeforeLoad = null; }
+    updateSummary();
   }
 
   slotsBox.addEventListener('click', (event) => {
+    if (event.target.closest('[data-retry]')) { loadSlots(); return; }
     const button = event.target.closest('.slot');
     if (!button) return;
     state.time = button.dataset.hora;
@@ -121,8 +182,10 @@ export default async function novo(root, { params }) {
     updateSummary();
   });
 
-  form.serviceId.addEventListener('change', loadSlots);
+  form.serviceId.addEventListener('change', () => { renderExtras(); loadSlots(); });
   form.date.addEventListener('change', loadSlots);
+  form.size.addEventListener('change', () => { updateAddon(); updateSummary(); });
+  form.addon.addEventListener('change', updateSummary);
   form.encaixe.addEventListener('change', () => {
     state.encaixe = form.encaixe.checked;
     $('#n-encaixe-campo', root).hidden = !state.encaixe;
@@ -130,12 +193,13 @@ export default async function novo(root, { params }) {
     updateSummary();
   });
   form.startManual.addEventListener('input', updateSummary);
+  form.addEventListener('input', () => { if (!$('#n-salvar', root).disabled) state.key = crypto.randomUUID(); });
   form.phone.addEventListener('blur', () => { form.phone.value = formatPhone(form.phone.value); });
   form.plate.addEventListener('blur', () => { form.plate.value = formatPlate(form.plate.value); });
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const start = state.encaixe ? form.startManual.value : state.time;
+    const start = chosenTime();
     const data = {
       serviceId: form.serviceId.value,
       date: form.date.value,
@@ -145,7 +209,11 @@ export default async function novo(root, { params }) {
       vehicle: form.vehicle.value,
       plate: form.plate.value,
       notes: form.notes.value,
+      size: needsSize(currentService()) ? form.size.value || undefined : undefined,
+      addon: Boolean(currentService()?.addon && form.addon.checked),
       returnToken: preset.returnToken,
+      vehicleId: preset.vehicleId,
+      idempotencyKey: state.key,
     };
     if (!start) {
       toast('Escolha um horário livre ou marque o encaixe.');
@@ -153,11 +221,12 @@ export default async function novo(root, { params }) {
       return;
     }
     const button = $('#n-salvar', root);
+    if (button.disabled) return;
     button.disabled = true;
     button.setAttribute('aria-busy', 'true');
     try {
-      const { appointment } = await api.createBooking(data, { source: 'painel', force: state.encaixe });
-      toast(`Agendado: ${formatDateLong(appointment.date)}, às ${appointment.start}.`);
+      const { appointment } = editId ? await api.editAppointment(editId, data, state.encaixe) : await api.createBooking(data, { source: 'painel', force: state.encaixe });
+      toast(`${editId ? 'Alterações salvas' : 'Agendado'}: ${formatDateLong(appointment.date)}, às ${appointment.start}.`);
       window.location.hash = appointment.date === today() ? '#/' : `#/agenda?semana=${appointment.date}`;
     } catch (error) {
       if (error.fields) {
@@ -176,6 +245,7 @@ export default async function novo(root, { params }) {
     }
   });
 
+  renderExtras();
   await loadSlots();
   return null;
 }
