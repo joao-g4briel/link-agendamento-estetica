@@ -131,7 +131,7 @@ const read = (fn, options = {}) => withDb(fn, { ...options, readOnly: true });
 const PUBLIC = [
   ['GET', /^\/perfil$/, () => read((d) => regras.getPublicProfile(d), { publicOnly: true })],
   ['GET', /^\/horarios$/, (req, m, url) => read((d) => regras.getAvailability(d, url.searchParams.get('servico'), url.searchParams.get('de'), url.searchParams.get('dias')), { publicOnly: true })],
-  ['GET', /^\/retorno\/([a-z0-9]{6,20})$/, (req, m) => read((d) => regras.getReturnInvite(d, m[1]), { tables: ['returns', 'customers', 'services'], inviteToken: m[1] })],
+  ['GET', /^\/retorno\/([a-z0-9]{6,20})$/, (req, m) => read((d) => regras.getReturnInvite(d, m[1]), { tables: ['returns', 'customers', 'services', 'vehicles'], inviteToken: m[1] })],
   ['GET', /^\/reserva\/([\w-]{32})$/, (req, m) => read(d => regras.manageBooking(d, m[1]))],
   ['PATCH', /^\/reserva\/([\w-]{32})$/, async (req, m) => { await limit(req, 'manage', 30, 15 * 60000); const input = await body(req); return db(d => regras.manageBooking(d, m[1], input)); }],
   ['POST', /^\/agendamentos$/, async (req) => {

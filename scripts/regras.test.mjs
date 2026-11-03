@@ -98,6 +98,109 @@ test('remarcar para outro dia continua voltando para agendado', () => {
 test('lista de espera aponta o campo inválido', () => {
   assert.throws(() => r.saveWaitlist(fixture(), { name: 'A', phone: '1', serviceId: 'svc' }), e => Boolean(e.fields.name && e.fields.phone));
 });
+const sized = () => {
+  const db = fixture();
+  const s = r.saveService(db, { name: 'Simples', pricesBySize: { P: 4000, M: 5000, G: 6000 }, addon: { name: 'Cera Premium', prices: { P: 1000, M: 1500, G: 2000 } } });
+  return { db, s };
+};
+test('serviço por porte usa o menor valor como referência e valida cada preço', () => {
+  const { s } = sized();
+  assert.equal(s.priceCents, 4000); assert.equal(s.priceFrom, true);
+  assert.equal(r.saveService(fixture(), { name: 'Detalhada', pricesBySize: { P: 15000, M: 15000, G: 15000 } }).priceFrom, false);
+  assert.throws(() => r.saveService(fixture(), { name: 'Erro', pricesBySize: { P: 1, M: -1, G: 1 } }), e => Boolean(e.fields.priceM));
+  assert.throws(() => r.saveService(fixture(), { name: 'Erro', priceCents: 1, addon: { name: '', prices: { P: 1, M: 1, G: 1 } } }), e => Boolean(e.fields.addonName));
+});
+test('reserva calcula o valor no servidor pelo porte e adicional', () => {
+  const { db, s } = sized();
+  assert.throws(() => book(db, { serviceId: s.id }), e => Boolean(e.fields?.size));
+  const a = book(db, { serviceId: s.id, size: 'M', addon: true, priceCents: 1 });
+  assert.equal(a.priceCents, 6500); assert.equal(a.addonCents, 1500); assert.equal(a.addonName, 'Cera Premium'); assert.equal(a.size, 'M');
+  assert.equal(db.vehicles[0].size, 'M');
+  assert.equal(book(db, { serviceId: s.id, size: 'G', plate: 'XYZ1A23', date: addDays(today(), 2) }).priceCents, 6000);
+  assert.equal(book(db, { size: 'G', plate: 'XYZ1A24', addon: true, date: addDays(today(), 3) }).priceCents, 4050);
+});
+test('preço único sem adicional segue funcionando sem porte', () => {
+  const db = fixture(); const a = book(db);
+  assert.equal(a.priceCents, 4050); assert.equal(a.size, null); assert.equal(a.addonCents, 0);
+});
+test('mudar porte recalcula; atendimento antigo sem porte mantém o valor', () => {
+  const { db, s } = sized();
+  const a = book(db, { serviceId: s.id, size: 'P' });
+  r.editAppointment(db, a.id, input({ serviceId: s.id, date: a.date, start: a.start, size: 'G', addon: true }));
+  assert.equal(db.appointments[0].priceCents, 8000); assert.equal(db.vehicles[0].size, 'G');
+  const antigo = db.appointments[0]; Object.assign(antigo, { size: null, addonName: null, addonCents: 0, priceCents: 3000 });
+  r.editAppointment(db, a.id, input({ serviceId: s.id, date: a.date, start: a.start, notes: 'Só nota' }));
+  assert.equal(antigo.priceCents, 3000);
+});
+test('remarcar pelo link do cliente mantém porte e adicional', () => {
+  const { db, s } = sized();
+  const a = book(db, { serviceId: s.id, size: 'M', addon: true });
+  r.manageBooking(db, a.manageToken, { action: 'remarcar', date: addDays(today(), 2) });
+  assert.equal(db.appointments[0].priceCents, 6500); assert.equal(db.appointments[0].addonName, 'Cera Premium');
+});
+test('convite de retorno traz o porte do veículo', () => {
+  const { db, s } = sized(); s.returnInterval = '1m'; db.services.find(x => x.id === s.id).returnInterval = '1m';
+  const a = book(db, { serviceId: s.id, size: 'G' });
+  db.appointments[0].date = addDays(today(), -1);
+  const { planted } = r.setAppointmentStatus(db, a.id, 'concluido');
+  assert.equal(r.getReturnInvite(db, planted.token).size, 'G');
+});
+const hourly = (carsPerSlot = 1, maxCarsPerDay = 0) => { const db = fixture(); Object.assign(db.settings, { bookingMode: 'horario', carsPerSlot, maxCarsPerDay }); return db; };
+test('agenda por dia continua gravando a abertura, mesmo pedindo outra hora', () => {
+  const db = fixture();
+  assert.equal(book(db, { start: '15:00' }).start, '08:00');
+  assert.equal(r.getAvailability(db, 'svc')[1].slots.length, 1);
+});
+test('agenda por horário preserva a hora, oferece todos e tira o que lotou', () => {
+  const db = hourly();
+  const day = r.getAvailability(db, 'svc')[1];
+  assert.ok(day.slots.length > 1);
+  assert.equal(book(db, { start: '15:00' }).start, '15:00');
+  assert.ok(!r.getAvailability(db, 'svc')[1].slots.some(s => s.time === '15:00'));
+  assert.throws(() => book(db, { start: '15:00', phone: '81912345679' }), e => e.code === 'SLOT_TAKEN');
+  assert.ok(book(db, { start: '15:30', phone: '81912345679' }));
+  assert.ok(book(db, { start: '15:00', phone: '81912345670' }, { source: 'painel', force: true }));
+});
+test('carros por horário e limite diário valem juntos', () => {
+  const db = hourly(2, 3);
+  book(db, { start: '09:00' }); book(db, { start: '09:00', phone: '81912345671' });
+  assert.throws(() => book(db, { start: '09:00', phone: '81912345672' }), e => e.code === 'SLOT_TAKEN');
+  book(db, { start: '10:00', phone: '81912345672' });
+  const day = r.getAvailability(db, 'svc')[1];
+  assert.equal(day.reason, 'lotado'); assert.equal(day.slots.length, 0);
+  assert.throws(() => book(db, { start: '11:00', phone: '81912345673' }), e => e.code === 'SLOT_TAKEN');
+});
+test('dia por horário informa as vagas reais, não a quantidade de horários', () => {
+  const db = hourly(1, 4); db.settings.slotStep = 60;
+  const before = r.getAvailability(db, 'svc')[1];
+  assert.ok(before.slots.length > 4); assert.equal(before.free, 4);
+  book(db, { start: '09:00' });
+  assert.equal(r.getAvailability(db, 'svc')[1].free, 3);
+  db.settings.maxCarsPerDay = 0;
+  assert.equal(r.getAvailability(db, 'svc')[1].free, null);
+  db.settings.maxCarsPerDay = 50; db.settings.hours[new Date(`${before.date}T12:00`).getDay()] = { open: '09:00', close: '11:00' };
+  assert.equal(r.getAvailability(db, 'svc')[1].free, 1);
+});
+test('painel respeita o limite por horário sem marcar encaixe', () => {
+  const db = hourly();
+  book(db, { start: '09:00' });
+  assert.throws(() => book(db, { start: '09:00', phone: '81912345674' }, { source: 'painel' }), e => e.code === 'SLOT_TAKEN');
+});
+test('remarcar pelo link por horário exige um horário livre e aceita mudar só a hora', () => {
+  const db = hourly();
+  const a = book(db, { start: '09:00' }); book(db, { start: '10:00', phone: '81912345675' });
+  assert.throws(() => r.manageBooking(db, a.manageToken, { action: 'remarcar', date: a.date, start: '10:00' }), e => e.code === 'SLOT_TAKEN');
+  assert.throws(() => r.manageBooking(db, a.manageToken, { action: 'remarcar', date: a.date }), e => e.code === 'SLOT_TAKEN');
+  r.manageBooking(db, a.manageToken, { action: 'remarcar', date: a.date, start: '11:00' });
+  assert.equal(db.appointments[0].start, '11:00');
+});
+test('ajustes validam o modo e os carros por horário', () => {
+  const db = fixture();
+  assert.throws(() => r.saveSettings(db, { bookingMode: 'semana' }));
+  assert.throws(() => r.saveSettings(db, { carsPerSlot: 0 }));
+  assert.equal(r.saveSettings(db, { bookingMode: 'horario', carsPerSlot: 2 }).carsPerSlot, 2);
+  assert.equal(r.getPublicProfile(db).shop.bookingMode, 'horario');
+});
 test('valida datas reais, números finitos, pausas, URLs e descrição', () => {
   assert.equal(isISODate('2026-02-30'), false);
   const db = fixture();

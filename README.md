@@ -46,6 +46,7 @@ Precisa do Node 22 ou mais novo.
 - **Ajustes:** agenda online aberta ou fechada, dados da estética, horário de funcionamento, vagas, limite de carros por dia, intervalo entre horários, antecedência, folgas, texto da mensagem de retorno e o endereço do link.
 - **Fechar a agenda:** em Ajustes ou no Início. Com a agenda fechada, o link mostra os serviços e preços, mas não aceita agendamento e pede para chamar no WhatsApp; pelo painel o dono continua agendando.
 - **Limite de carros por dia:** quando o dia chega no limite, ele aparece lotado no link. Pelo painel ainda dá para encaixar.
+- **Agenda por dia ou por horário:** em Ajustes → Regras da agenda. Por dia, o cliente escolhe só o dia e o carro chega a partir da abertura. Por horário, ele escolhe a hora de chegada; "Carros por horário" define quantos cabem em cada um, junto com o limite diário.
 
 ### Como o retorno funciona
 

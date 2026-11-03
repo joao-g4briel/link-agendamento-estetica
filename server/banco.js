@@ -14,14 +14,16 @@ const TABLES = [
   ['services', 'servicos', {
     id: 'id', name: 'name', description: 'description', priceCents: 'price_cents',
     priceFrom: 'price_from', returnInterval: 'return_interval', returnAction: 'return_action', active: 'active', order: 'ordem',
+    pricesBySize: 'prices_by_size', addon: 'addon',
   }],
   ['customers', 'clientes', { id: 'id', name: 'name', phone: 'phone', createdAt: 'created_at' }],
-  ['vehicles', 'veiculos', { id: 'id', customerId: 'customer_id', vehicle: 'vehicle', plate: 'plate' }],
+  ['vehicles', 'veiculos', { id: 'id', customerId: 'customer_id', vehicle: 'vehicle', plate: 'plate', size: 'size' }],
   ['appointments', 'agendamentos', {
     id: 'id', code: 'code', customerId: 'customer_id', serviceId: 'service_id', date: 'date', start: 'start',
     priceCents: 'price_cents', vehicle: 'vehicle', plate: 'plate', notes: 'notes', vehicleId: 'vehicle_id', customerName: 'customer_name',
     idempotencyKey: 'idempotency_key', requestFingerprint: 'request_fingerprint', manageToken: 'manage_token',
     status: 'status', source: 'source', createdAt: 'created_at', completedAt: 'completed_at', autoCompleted: 'auto_completed',
+    size: 'size', addonName: 'addon_name', addonCents: 'addon_cents',
   }],
   ['returns', 'retornos', {
     id: 'id', token: 'token', customerId: 'customer_id', serviceId: 'service_id', appointmentId: 'appointment_id',
@@ -63,6 +65,7 @@ async function load(client, { publicOnly = false, tables, inviteToken, customerI
     if (publicOnly && key === 'appointments') where = " where date >= (now() at time zone 'America/Sao_Paulo')::date and date <= (now() at time zone 'America/Sao_Paulo')::date + 90";
     if (inviteToken && key === 'returns') { where = ' where token = $1'; params = [inviteToken]; }
     if (inviteToken && key === 'customers') { where = ' where id in (select customer_id from retornos where token = $1)'; params = [inviteToken]; }
+    if (inviteToken && key === 'vehicles') { where = ' where id in (select vehicle_id from retornos where token = $1)'; params = [inviteToken]; }
     if (customerId && ['customers', 'vehicles', 'appointments', 'returns'].includes(key)) { where = ` where ${key === 'customers' ? 'id' : 'customer_id'} = $1`; params = [customerId]; }
     if (customerList && ['customers', 'vehicles', 'appointments', 'returns'].includes(key)) { where = ` where ${key === 'customers' ? 'id' : 'customer_id'} in (${pageQuery})`; params = pageParams; }
     const { rows } = await client.query(`select ${Object.values(map).join(', ')} from ${table}${where}`, params);

@@ -3,9 +3,10 @@
 import * as api from '../data/api.js';
 import { diffDays, today } from '../core/dates.js';
 import {
-  formatDateLong, formatDateShort, formatDateShortYear, formatPhone, formatRelativeDay, html, raw, STATUS_LABELS,
+  formatDateLong, formatDateShort, formatDateShortYear, formatPhone, formatPrice, formatRelativeDay, html, raw, STATUS_LABELS,
 } from '../core/format.js';
 import { icon } from '../core/icons.js';
+import { sizeLabel } from '../core/precos.js';
 import { appointmentMessage, returnMessage, waLink } from '../core/whatsapp.js';
 
 export { html, raw, icon };
@@ -86,6 +87,7 @@ export function appointmentRow(a, { settings, showDate = false, highlight = fals
       <div class="item__corpo">
         <p class="item__titulo">${a.vehicle} ${placa(a.plate)} ${statusSelo(a)}</p>
         <p class="item__sub">${a.service.name} · ${a.customer.name}${a.source === 'retorno' ? html` · <span class="selo selo--retorno">${icon('repeat')}voltou pelo retorno</span>` : ''}</p>
+        ${a.size || a.addonName ? html`<p class="item__sub">${[a.size ? `Porte ${sizeLabel(a.size).toLowerCase()}` : '', a.addonName ? `com ${a.addonName}` : '', formatPrice(a.priceCents)].filter(Boolean).join(' · ')}</p>` : ''}
         ${a.notes ? html`<p class="item__nota">“${a.notes}”</p>` : ''}
         ${a.status === 'concluido' && a.plantedReturn ? html`<p class="item__sub">${icon('repeat')} Retorno em ${formatDateLong(a.plantedReturn.dueDate)}</p>` : ''}
       </div>

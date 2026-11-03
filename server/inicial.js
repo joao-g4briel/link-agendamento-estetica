@@ -17,6 +17,9 @@ export const SETTINGS = {
   maxCarsPerDay: 4,
   // false fecha o link para novos agendamentos; o painel continua agendando.
   bookingOpen: true,
+  // 'dia': o cliente escolhe só o dia. 'horario': escolhe também a hora de chegada.
+  bookingMode: 'dia',
+  carsPerSlot: 1,
   slotStep: 30,
   minNoticeMinutes: 120,
   horizonDays: 30,

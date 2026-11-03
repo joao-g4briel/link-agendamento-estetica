@@ -2,6 +2,7 @@
 
 import * as api from '../data/api.js';
 import { formatInterval, formatPrice } from '../core/format.js';
+import { SIZES, sizesLine } from '../core/precos.js';
 import { returnMessage } from '../core/whatsapp.js';
 import { $, html, icon, showFieldErrors, toast } from './ui.js';
 
@@ -22,6 +23,17 @@ function priceInput(cents) {
   const value = cents / 100;
   return Number.isInteger(value) ? String(value) : value.toFixed(2).replace('.', ',');
 }
+
+/** Três preços lado a lado, um para cada porte. `prefix` é o começo do nome de cada campo. */
+function sizeInputs(prefix, prices) {
+  return html`<div class="form__linha linha-portes">${SIZES.map(({ code, label }) => html`
+    <div class="campo">
+      <label for="s-${prefix}-${code}">${label}</label>
+      <div class="prefixo"><span>R$</span><input id="s-${prefix}-${code}" name="${prefix}${code}" inputmode="decimal" value="${priceInput(prices?.[code])}"></div>
+    </div>`)}</div>`;
+}
+
+const readSizes = (data, prefix) => Object.fromEntries(SIZES.map(({ code }) => [code, parsePrice(data.get(`${prefix}${code}`))]));
 
 async function listView(root) {
   root.innerHTML = String(html`
@@ -52,7 +64,8 @@ async function listView(root) {
           <li class="item item--sem-hora" data-servico="${s.id}">
             <div class="item__corpo">
               <p class="item__titulo">${s.name} ${s.active ? '' : html`<span class="selo selo--cancelado">${icon('ban')}fora do link</span>`}</p>
-              <p class="item__sub">${s.priceFrom ? 'a partir de ' : ''}${formatPrice(s.priceCents)} · ${cycleText(s.returnInterval)}</p>
+              <p class="item__sub">${s.pricesBySize ? sizesLine(s.pricesBySize) : `${s.priceFrom ? 'a partir de ' : ''}${formatPrice(s.priceCents)}`} · ${cycleText(s.returnInterval)}</p>
+              ${s.addon ? html`<p class="item__sub">Adicional: ${s.addon.name} · ${sizesLine(s.addon.prices)}</p>` : ''}
             </div>
             <div class="item__acoes">
               <a class="btn btn--linha btn--pequeno" href="#/servicos/${s.id}">${icon('pencil')}Editar</a>
@@ -137,14 +150,31 @@ async function editView(root, id) {
       </fieldset>
       <fieldset class="form__grupo">
         <legend>Preço</legend>
-        <div class="form__linha form__linha--2">
-          <div class="campo">
-            <label for="s-preco">Preço</label>
-            <div class="prefixo"><span>R$</span><input id="s-preco" name="priceCents" inputmode="decimal" value="${priceInput(service.priceCents)}" placeholder="350"></div>
+        <label class="check"><input type="checkbox" name="bySize" ${service.pricesBySize ? html`checked` : ''}>
+          <span>Preço por porte do carro<small>O cliente escolhe pequeno, médio ou grande e vê o valor certo.</small></span></label>
+        <div id="preco-porte" ${service.pricesBySize ? '' : html`hidden`}>${sizeInputs('price', service.pricesBySize)}</div>
+        <div id="preco-unico" ${service.pricesBySize ? html`hidden` : ''}>
+          <div class="form__linha form__linha--2">
+            <div class="campo">
+              <label for="s-preco">Preço</label>
+              <div class="prefixo"><span>R$</span><input id="s-preco" name="priceCents" inputmode="decimal" value="${priceInput(service.priceCents)}" placeholder="350"></div>
+            </div>
           </div>
+          <label class="check"><input type="checkbox" name="priceFrom" ${service.priceFrom ? html`checked` : ''}>
+            <span>Mostrar como “a partir de”<small>Para quando o preço muda conforme o carro.</small></span></label>
         </div>
-        <label class="check"><input type="checkbox" name="priceFrom" ${service.priceFrom ? html`checked` : ''}>
-          <span>Mostrar como “a partir de”<small>Para quando o preço muda com o tamanho do carro.</small></span></label>
+      </fieldset>
+      <fieldset class="form__grupo">
+        <legend>Adicional opcional</legend>
+        <label class="check"><input type="checkbox" name="hasAddon" ${service.addon ? html`checked` : ''}>
+          <span>Oferecer um adicional neste serviço<small>O cliente escolhe na hora de agendar. O valor varia por porte.</small></span></label>
+        <div id="adicional" ${service.addon ? '' : html`hidden`}>
+          <div class="campo">
+            <label for="s-adicional">Nome do adicional</label>
+            <input id="s-adicional" name="addonName" value="${service.addon?.name}" maxlength="40" placeholder="Ex.: Cera Premium">
+          </div>
+          ${sizeInputs('addon', service.addon?.prices)}
+        </div>
       </fieldset>
       <fieldset class="form__grupo">
         <legend>Retorno</legend>
@@ -200,6 +230,13 @@ async function editView(root, id) {
   };
   form.addEventListener('input', preview);
   preview();
+  form.elements.bySize.addEventListener('change', (event) => {
+    $('#preco-porte', root).hidden = !event.target.checked;
+    $('#preco-unico', root).hidden = event.target.checked;
+  });
+  form.elements.hasAddon.addEventListener('change', (event) => {
+    $('#adicional', root).hidden = !event.target.checked;
+  });
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -211,6 +248,8 @@ async function editView(root, id) {
       description: data.get('description'),
       priceCents,
       priceFrom: data.get('priceFrom') === 'on',
+      pricesBySize: data.get('bySize') === 'on' ? readSizes(data, 'price') : null,
+      addon: data.get('hasAddon') === 'on' ? { name: data.get('addonName'), prices: readSizes(data, 'addon') } : null,
       returnInterval: data.get('returnInterval') || null,
       returnAction: data.get('returnAction'),
       active: data.get('active') === 'on',

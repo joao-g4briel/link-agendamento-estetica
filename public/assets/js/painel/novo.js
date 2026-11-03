@@ -3,6 +3,7 @@
 import * as api from '../data/api.js';
 import { addDays, today } from '../core/dates.js';
 import { formatDateLong, formatPhone, formatPlate, formatPrice } from '../core/format.js';
+import { needsSize, priceForSize, SIZES, totalFor } from '../core/precos.js';
 import { $, capitalize, html, icon, showFieldErrors, toast } from './ui.js';
 
 export default async function novo(root, { params }) {
@@ -18,7 +19,7 @@ export default async function novo(root, { params }) {
     if (c) {
       cars = c.cars;
       const car = c.cars[c.cars.length - 1] || {};
-      preset = { ...preset, name: c.name, phone: c.phone, vehicle: car.vehicle || '', plate: car.plate || '', vehicleId: car.id };
+      preset = { ...preset, name: c.name, phone: c.phone, vehicle: car.vehicle || '', plate: car.plate || '', vehicleId: car.id, size: car.size };
     }
   }
   if (params.get('retorno')) {
@@ -26,7 +27,7 @@ export default async function novo(root, { params }) {
       const { ret } = await api.getReturnMessageData(params.get('retorno'));
       preset = {
         serviceId: ret.serviceId, name: ret.customer.name, phone: ret.customer.phone,
-        vehicle: ret.vehicle, plate: ret.plate, returnToken: ret.token, vehicleId: ret.vehicleId,
+        vehicle: ret.vehicle, plate: ret.plate, returnToken: ret.token, vehicleId: ret.vehicleId, size: ret.size,
       };
     } catch {
       // Retorno sumiu: segue com o formulário vazio.
@@ -53,7 +54,7 @@ export default async function novo(root, { params }) {
           <div class="campo">
             <label for="n-servico">Serviço</label>
             <select id="n-servico" name="serviceId">
-              ${active.map((s) => html`<option value="${s.id}" ${s.id === preset.serviceId ? html`selected` : ''}>${s.name} · ${formatPrice(s.priceCents)}</option>`)}
+              ${active.map((s) => html`<option value="${s.id}" ${s.id === preset.serviceId ? html`selected` : ''}>${s.name} · ${s.pricesBySize ? 'a partir de ' : ''}${formatPrice(s.priceCents)}</option>`)}
             </select>
           </div>
           <div class="campo">
@@ -61,6 +62,11 @@ export default async function novo(root, { params }) {
             <input id="n-dia" name="date" type="date" min="${today()}" max="${addDays(today(), 365)}" value="${state.date}">
           </div>
         </div>
+        <div class="campo" id="n-porte-campo" hidden>
+          <label for="n-porte">Porte do carro</label>
+          <select id="n-porte" name="size"></select>
+        </div>
+        <label class="check" id="n-adicional-campo" hidden><input type="checkbox" name="addon" ${preset.addonName ? html`checked` : ''}><span id="n-adicional-texto"></span></label>
         <div class="campo">
           <span class="campo__rotulo" id="n-horarios-rotulo">Horários de chegada</span>
           <div id="n-horarios" aria-labelledby="n-horarios-rotulo" aria-live="polite"></div>
@@ -106,12 +112,34 @@ export default async function novo(root, { params }) {
     preset.vehicleId = car?.id;
     form.elements.vehicle.value = car?.vehicle || '';
     form.elements.plate.value = car?.plate || '';
+    if (car?.size) { form.size.value = car.size; updateSummary(); }
   });
 
+  const currentService = () => active.find((x) => x.id === form.serviceId.value);
+
+  /** Porte e adicional só aparecem no serviço que usa; o valor ao lado de cada porte acompanha o serviço. */
+  function renderExtras() {
+    const s = currentService();
+    const chosen = form.size.value || preset.size || '';
+    $('#n-porte-campo', root).hidden = !needsSize(s);
+    form.size.innerHTML = String(html`<option value="">Escolha o porte</option>${SIZES.map(({ code, label }) => html`<option value="${code}" ${code === chosen ? html`selected` : ''}>${label} · ${formatPrice(priceForSize(s, code))}</option>`)}`);
+    $('#n-adicional-campo', root).hidden = !s?.addon;
+    updateAddon();
+  }
+
+  function updateAddon() {
+    const { addon } = currentService() || {};
+    if (!addon) return;
+    const price = addon.prices[form.size.value];
+    $('#n-adicional-texto', root).textContent = `Adicionar ${addon.name}${price === undefined ? '' : ` (+ ${formatPrice(price)})`}`;
+  }
+
   function updateSummary() {
-    const s = active.find((x) => x.id === form.serviceId.value);
+    const s = currentService();
     const time = chosenTime();
-    summary.textContent = s && time ? `${capitalize(formatDateLong(state.date))}, às ${time} · ${s.name}` : '';
+    const size = form.size.value;
+    const value = !needsSize(s) || size ? ` · ${formatPrice(totalFor(s, size, s.addon && form.addon.checked))}` : '';
+    summary.textContent = s && time ? `${capitalize(formatDateLong(state.date))}, às ${time} · ${s.name}${value}` : '';
   }
 
   async function loadSlots() {
@@ -154,8 +182,10 @@ export default async function novo(root, { params }) {
     updateSummary();
   });
 
-  form.serviceId.addEventListener('change', loadSlots);
+  form.serviceId.addEventListener('change', () => { renderExtras(); loadSlots(); });
   form.date.addEventListener('change', loadSlots);
+  form.size.addEventListener('change', () => { updateAddon(); updateSummary(); });
+  form.addon.addEventListener('change', updateSummary);
   form.encaixe.addEventListener('change', () => {
     state.encaixe = form.encaixe.checked;
     $('#n-encaixe-campo', root).hidden = !state.encaixe;
@@ -179,6 +209,8 @@ export default async function novo(root, { params }) {
       vehicle: form.vehicle.value,
       plate: form.plate.value,
       notes: form.notes.value,
+      size: needsSize(currentService()) ? form.size.value || undefined : undefined,
+      addon: Boolean(currentService()?.addon && form.addon.checked),
       returnToken: preset.returnToken,
       vehicleId: preset.vehicleId,
       idempotencyKey: state.key,
@@ -213,6 +245,7 @@ export default async function novo(root, { params }) {
     }
   });
 
+  renderExtras();
   await loadSlots();
   return null;
 }

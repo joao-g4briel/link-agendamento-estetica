@@ -1,5 +1,6 @@
 // Link público de agendamento: serviço → dia → dados → pintado no muro.
-// O cliente escolhe só o dia; o carro chega a partir da abertura.
+// Agenda por dia: o cliente escolhe só o dia e o carro chega a partir da abertura.
+// Agenda por horário: o cliente escolhe também a hora de chegada.
 
 import * as api from './data/api.js';
 import { addDays, nowMinutes, parseISODate, toMinutes, today, weekday } from './core/dates.js';
@@ -9,6 +10,7 @@ import {
   statusLabel, WEEKDAYS, WEEKDAYS_SHORT,
 } from './core/format.js';
 import { icon } from './core/icons.js';
+import { needsSize, priceForSize, sizeLabel, SIZES, sizesLine, totalFor } from './core/precos.js';
 import { waLink } from './core/whatsapp.js';
 
 const $ = (selector) => document.querySelector(selector);
@@ -21,6 +23,8 @@ const state = {
   days: [],
   date: null,
   time: null,
+  size: null,
+  addon: false,
   submitting: false,
   idempotencyKey: crypto.randomUUID(),
 };
@@ -35,6 +39,9 @@ function hourLabel(hhmm) {
   const [h, m] = hhmm.split(':');
   return m === '00' ? `${Number(h)}h` : `${Number(h)}h${m}`;
 }
+
+const hourly = () => state.profile?.shop.bookingMode === 'horario';
+const arrival = (time) => `${hourly() ? 'às' : 'a partir das'} ${hourLabel(time)}`;
 
 function openingLine(hours) {
   const wd = weekday(today());
@@ -153,6 +160,7 @@ function renderServices() {
         <span class="servico__nome">${s.name}</span>
         <span class="servico__pontos" aria-hidden="true"></span>
         <span class="servico__preco">${s.priceFrom ? html`<small>a partir de</small>` : ''}${formatPrice(s.priceCents)}</span>
+        ${s.pricesBySize ? html`<span class="servico__meta">${sizesLine(s.pricesBySize)}</span>` : ''}
         ${s.returnInterval ? html`<span class="servico__meta">${cycleLabel(s.returnInterval)}</span>` : ''}
         ${s.description ? html`<span class="servico__desc" role="list">${s.description.split(/\r?\n/).map(line => line.trim().replace(/^[-•]\s*/, '')).filter(Boolean).map(line => html`<span role="listitem">${line}</span>`)}</span>` : ''}
       </button>
@@ -203,6 +211,7 @@ async function selectService(id, { scroll = true } = {}) {
   state.service = service;
   state.date = null;
   state.time = null;
+  state.addon = false;
 
   document.querySelectorAll('.servico').forEach((button) => {
     button.setAttribute('aria-pressed', String(button.dataset.id === id));
@@ -212,7 +221,7 @@ async function selectService(id, { scroll = true } = {}) {
   $('#etapa-dados').hidden = true;
 
   $('#ajuda-quando').textContent =
-    `${service.name}. Escolha o dia e confira a orientação de chegada.`;
+    `${service.name}. ${hourly() ? 'Escolha o dia e o horário de chegada.' : 'Escolha o dia e confira a orientação de chegada.'}`;
   $('#dias').classList.add('dias--carregando');
   $('#dias').setAttribute('aria-busy', 'true');
   $('#dias').innerHTML = Array.from({ length: 7 }, () =>
@@ -239,6 +248,13 @@ async function selectService(id, { scroll = true } = {}) {
 }
 
 function dayTag(day) {
+  if (day.slots.length && hourly()) {
+    const single = day.slots.length === 1;
+    const times = `${single ? '1 horário' : `${day.slots.length} horários`} para escolher`;
+    if (day.free === 1) return { short: 'última vaga', long: `última vaga, ${times}` };
+    if (day.free) return { short: `${day.free} vagas`, long: `${day.free} vagas, ${times}` };
+    return { short: single ? '1 livre' : `${day.slots.length} livres`, long: times };
+  }
   if (day.slots.length) {
     const { free, time } = day.slots[0];
     if (free === 1) return { short: 'última vaga', long: `última vaga, chegada a partir das ${hourLabel(time)}` };
@@ -292,13 +308,20 @@ function noDaysNote() {
     ${shop.whatsapp ? html`<a href="${waLink(shop.whatsapp, `Oi! Queria um encaixe para ${state.service.name.toLowerCase()}.`)}" target="_blank" rel="noopener">Peça um encaixe no WhatsApp</a>.` : ''}</p>`;
 }
 
-/** Embaixo dos dias: o aviso de erro (dia que lotou), a falta de dias ou a hora de chegada do dia escolhido. */
+function timesHTML(day) {
+  return html`<p class="horarios__titulo">Escolha o horário</p>
+    <ul class="horarios__lista" role="list">${day.slots.map((s) => html`
+      <li><button type="button" class="horario" data-time="${s.time}" aria-pressed="${String(s.time === state.time)}">${hourLabel(s.time)}</button></li>`)}</ul>`;
+}
+
+/** Embaixo dos dias: o aviso de erro (dia que lotou), a falta de dias, os horários ou a hora de chegada do dia escolhido. */
 function renderDayNote(message = '') {
   const day = state.days.find((d) => d.date === state.date && d.slots.length);
   $('#horarios').innerHTML = html`
     ${message ? html`<p class="vazio-giz" role="alert">${message}</p>` : ''}
     ${state.days.some((d) => d.slots.length) ? '' : noDaysNote()}
-    ${day ? html`<p class="giz-nota">${icon('clock')}<span>Traga o carro na ${formatDateLong(day.date)}, <strong>a partir das ${hourLabel(day.slots[0].time)}</strong>.</span></p>` : ''}
+    ${day && hourly() ? timesHTML(day) : ''}
+    ${day && !hourly() ? html`<p class="giz-nota">${icon('clock')}<span>Traga o carro na ${formatDateLong(day.date)}, <strong>a partir das ${hourLabel(day.slots[0].time)}</strong>.</span></p>` : ''}
   `;
 }
 
@@ -307,22 +330,73 @@ function selectDay(date) {
   const day = state.days.find((d) => d.date === date);
   if (!day || !day.slots.length) return;
   state.date = date;
-  state.time = day.slots[0].time;
+  state.time = hourly() ? null : day.slots[0].time;
   document.querySelectorAll('.dia').forEach((button) => {
     button.setAttribute('aria-pressed', String(button.dataset.date === date));
   });
-  $('#etapa-quando').classList.add('feita');
   renderDayNote();
+  if (hourly()) {
+    $('#etapa-quando').classList.remove('feita');
+    $('#etapa-dados').hidden = true;
+    return;
+  }
+  openDetails();
+}
+
+function selectTime(time) {
+  state.idempotencyKey = crypto.randomUUID();
+  state.time = time;
+  document.querySelectorAll('.horario').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.time === time));
+  });
+  openDetails();
+}
+
+function openDetails() {
+  $('#etapa-quando').classList.add('feita');
+  renderSizes();
+  renderAddon();
   renderSummary();
   revealStep('#etapa-dados');
 }
 
+function renderSizes() {
+  const s = state.service;
+  $('#campo-porte').hidden = !needsSize(s);
+  if (!needsSize(s)) return;
+  $('#portes').innerHTML = SIZES.map(({ code, label }) => html`
+    <label class="porte">
+      <input type="radio" name="size" value="${code}" ${state.size === code ? raw('checked') : ''}>
+      <span>${label}</span>
+      <strong>${formatPrice(priceForSize(s, code))}</strong>
+    </label>`).join('');
+}
+
+function renderAddon() {
+  const { addon } = state.service;
+  $('#campo-adicional').hidden = !addon;
+  if (!addon) return;
+  const values = Object.values(addon.prices);
+  const price = state.size ? `+ ${formatPrice(addon.prices[state.size])}` : `${formatPrice(Math.min(...values))} a ${formatPrice(Math.max(...values))}`;
+  $('#f-adicional').checked = state.addon;
+  $('#adicional-texto').textContent = `Adicionar ${addon.name} (${price})`;
+}
+
+function priceText() {
+  const s = state.service;
+  if (needsSize(s) && !state.size) return `a partir de ${formatPrice(s.priceCents)}`;
+  const from = !s.pricesBySize && s.priceFrom ? 'a partir de ' : '';
+  return `${from}${formatPrice(totalFor(s, state.size, state.addon))}`;
+}
+
 function renderSummary() {
   const s = state.service;
+  const extras = [state.size && needsSize(s) ? `Porte ${sizeLabel(state.size).toLowerCase()}` : '', state.addon && s.addon ? `com ${s.addon.name}` : ''].filter(Boolean).join(' · ');
   $('#resumo').innerHTML = html`
     <p class="resumo__servico">${s.name}</p>
     <p class="resumo__quando">${capitalize(formatDateLong(state.date))}</p>
-    <p>Chegada a partir das ${hourLabel(state.time)} · ${s.priceFrom ? 'a partir de ' : ''}${formatPrice(s.priceCents)}, pago na estética</p>
+    ${extras ? html`<p>${extras}</p>` : ''}
+    <p>Chegada ${arrival(state.time)} · ${priceText()}, pago na estética</p>
   `;
 }
 
@@ -359,10 +433,14 @@ function prefill(data) {
   if (data.phone) fields.phone().value = formatPhone(data.phone);
   if (data.vehicle) fields.vehicle().value = data.vehicle;
   if (data.plate) fields.plate().value = formatPlate(data.plate);
+  if (data.size) state.size = data.size;
 }
 
+// O porte só existe na tela depois de escolher o dia, por isso fica fora de `fields`.
+const fieldInput = (name) => (name === 'size' ? $('#portes input') : fields[name]?.());
+
 function setFieldError(name, message) {
-  const input = fields[name]?.();
+  const input = fieldInput(name);
   const error = $(`#e-${name}`);
   if (!input || !error) return;
   const wrapper = input.closest('.campo');
@@ -382,6 +460,7 @@ function setFieldError(name, message) {
 
 function clientValidate(data) {
   const errors = {};
+  if (needsSize(state.service) && !data.size) errors.size = 'Escolha o porte para ver o valor certo.';
   if (!data.name || data.name.trim().length < 2) errors.name = 'Diga seu nome para a gente te chamar.';
   if (!isValidPhone(data.phone)) errors.phone = 'Confira o WhatsApp: DDD e número, ex.: (81) 91234-5678.';
   if (!data.vehicle || data.vehicle.trim().length < 2) errors.vehicle = 'Diga qual é o carro (modelo e cor).';
@@ -389,7 +468,8 @@ function clientValidate(data) {
 }
 
 function showErrors(errors) {
-  ['name', 'phone', 'vehicle'].forEach((name) => setFieldError(name, errors[name]));
+  const order = ['size', 'name', 'phone', 'vehicle'];
+  order.forEach((name) => setFieldError(name, errors[name]));
   const box = $('#ficha-erro');
   const count = Object.keys(errors).length;
   if (!count) {
@@ -398,8 +478,7 @@ function showErrors(errors) {
   }
   box.innerHTML = html`${icon('circle-alert')}<span>${count === 1 ? 'Falta um detalhe' : 'Faltam alguns detalhes'} para confirmar. Confira ${count === 1 ? 'o campo marcado' : 'os campos marcados'}.</span>`;
   box.hidden = false;
-  const first = ['name', 'phone', 'vehicle'].find((name) => errors[name]);
-  fields[first]().focus();
+  fieldInput(order.find((name) => errors[name])).focus();
 }
 
 async function submit(event) {
@@ -414,6 +493,8 @@ async function submit(event) {
     vehicle: fields.vehicle().value.trim(),
     plate: fields.plate().value,
     notes: fields.notes().value,
+    size: needsSize(state.service) ? state.size : undefined,
+    addon: Boolean(state.addon && state.service.addon),
     returnToken: state.invite && !state.invite.alreadyBooked ? state.invite.token : undefined,
     idempotencyKey: state.idempotencyKey,
   };
@@ -429,7 +510,7 @@ async function submit(event) {
 
   try {
     const result = await api.createBooking(data);
-    if ($('#lembrar-dados').checked) rememberClient({ name: data.name, phone: data.phone, vehicle: data.vehicle, plate: data.plate });
+    if ($('#lembrar-dados').checked) rememberClient({ name: data.name, phone: data.phone, vehicle: data.vehicle, plate: data.plate, size: state.size });
     else { try { localStorage.removeItem(CLIENT_KEY); } catch {} }
     renderPainted(result);
   } catch (error) {
@@ -479,7 +560,7 @@ function googleCalendarUrl({ appointment, service, shop }) {
     dates: `${calendarDay(appointment.date)}/${calendarDay(addDays(appointment.date, 1))}`,
     ctz: 'America/Sao_Paulo',
     location: shop.address || '',
-    details: `Traga o carro a partir das ${hourLabel(appointment.start)}. Carro: ${appointment.vehicle}${appointment.plate ? ` (${appointment.plate})` : ''}. Código: ${appointment.code}.`,
+    details: `Traga o carro ${arrival(appointment.start)}. Carro: ${appointment.vehicle}${appointment.plate ? ` (${appointment.plate})` : ''}. Código: ${appointment.code}.`,
   });
   return `https://calendar.google.com/calendar/render?${params}`;
 }
@@ -495,7 +576,7 @@ function icsFile({ appointment, service, shop }) {
     `DTEND;VALUE=DATE:${calendarDay(addDays(appointment.date, 1))}`,
     `SUMMARY:${escape(`${service.name} · ${shop.name}`)}`,
     `LOCATION:${escape(shop.address || '')}`,
-    `DESCRIPTION:${escape(`Traga o carro a partir das ${hourLabel(appointment.start)}. Carro: ${appointment.vehicle}. Código: ${appointment.code}.`)}`,
+    `DESCRIPTION:${escape(`Traga o carro ${arrival(appointment.start)}. Carro: ${appointment.vehicle}. Código: ${appointment.code}.`)}`,
     'END:VEVENT', 'END:VCALENDAR',
   ].join('\r\n');
   return URL.createObjectURL(new Blob([body], { type: 'text/calendar;charset=utf-8' }));
@@ -515,11 +596,13 @@ function renderPainted(result) {
       <svg class="pintado__check" aria-hidden="true"><use href="#pincel-check"/></svg>
       <span class="tinta" style="--i:0">${dayWord}</span>
       <span class="tinta" style="--i:1">${formatDateShort(a.date)}</span>
-      <span class="pintado__hora pintado__hora--chegada tinta" style="--i:2">a partir das ${hourLabel(a.start)}</span>
+      <span class="pintado__hora pintado__hora--chegada tinta" style="--i:2">${arrival(a.start)}</span>
     </h2>
     <dl class="pintado__ficha">
       <div><dt>Serviço</dt><dd>${service.name}</dd></div>
-      <div><dt>Carro</dt><dd>${a.vehicle}${a.plate ? ` · ${a.plate}` : ''}</dd></div>
+      <div><dt>Carro</dt><dd>${a.vehicle}${a.plate ? ` · ${a.plate}` : ''}${a.size ? ` · porte ${sizeLabel(a.size).toLowerCase()}` : ''}</dd></div>
+      ${a.addonName ? html`<div><dt>Adicional</dt><dd>${a.addonName}</dd></div>` : ''}
+      <div><dt>Valor</dt><dd>${service.priceFrom && !a.size ? 'a partir de ' : ''}${formatPrice(a.priceCents)}, pago na estética</dd></div>
       ${shop.address ? html`<div><dt>Onde</dt><dd>${addressHTML(shop.address)}</dd></div>` : ''}
       <div><dt>Código</dt><dd class="pintado__codigo">${a.code}</dd></div>
     </dl>
@@ -556,6 +639,7 @@ function startOver() {
   state.service = null;
   state.date = null;
   state.time = null;
+  state.addon = false;
   $('#pintado').hidden = true;
   $('#pintado').innerHTML = '';
   $('#agendar').hidden = false;
@@ -582,6 +666,19 @@ function bindEvents() {
     try { localStorage.removeItem(CLIENT_KEY); } catch {}
     Object.values(fields).forEach(get => { get().value = ''; });
     $('#lembrar-dados').checked = false;
+    state.size = null;
+    if (state.service && state.date) { renderSizes(); renderAddon(); renderSummary(); }
+  });
+  $('#ficha').addEventListener('change', (event) => {
+    if (event.target.name === 'size') {
+      state.size = event.target.value;
+      setFieldError('size', '');
+      renderAddon();
+      renderSummary();
+    } else if (event.target.id === 'f-adicional') {
+      state.addon = event.target.checked;
+      renderSummary();
+    }
   });
   $('#tabela').addEventListener('click', (event) => {
     const button = event.target.closest('.servico');
@@ -593,6 +690,8 @@ function bindEvents() {
   });
   $('#horarios').addEventListener('click', (event) => {
     if (event.target.closest('[data-acao="recarregar"]') && state.service) selectService(state.service.id, { scroll: false });
+    const time = event.target.closest('[data-time]');
+    if (time) selectTime(time.dataset.time);
   });
   $('#pintado').addEventListener('click', (event) => {
     if (event.target.closest('[data-acao="outro"]')) startOver();
@@ -670,16 +769,20 @@ async function renderManaged(token, notice = '') {
     const result = await api.getManagedBooking(token);
     const a = result.appointment;
     const days = result.canChange ? await api.getAvailability(a.serviceId) : [];
-    const otherDays = days.filter(d => d.slots.length && d.date !== a.date);
+    // Por horário dá para mudar só a hora do mesmo dia; por dia, remarcar é trocar de dia.
+    const isCurrent = (d, s) => d.date === a.date && s.time === a.start;
+    const otherDays = days.filter(d => (hourly() ? d.slots.some(s => !isCurrent(d, s)) : d.slots.length && d.date !== a.date));
     const guidance = a.status === 'cancelado' ? 'Este agendamento foi cancelado.'
       : result.canChange ? result.cancelNotice : 'O prazo de alteração acabou. Precisando, fale com a estética.';
     section.innerHTML = html`<h2 class="etapa__titulo" id="pintado-titulo">Seu agendamento</h2>
-      <p>${result.service.name} · ${formatDateLong(a.date)} · chegada a partir das ${hourLabel(a.start)}</p>
-      <p>${a.vehicle} · situação: ${statusLabel(a.status)}</p>
+      <p>${result.service.name} · ${formatDateLong(a.date)} · chegada ${arrival(a.start)}</p>
+      <p>${a.vehicle}${a.size ? ` · porte ${sizeLabel(a.size).toLowerCase()}` : ''} · situação: ${statusLabel(a.status)}</p>
+      <p>${a.addonName ? `Com ${a.addonName} · ` : ''}${formatPrice(a.priceCents)}, pago na estética</p>
       <p>${guidance}</p>
       ${result.canChange ? html`<form id="gerir-reserva" class="ficha">
         ${otherDays.length ? html`<div class="campo"><label for="nova-data">Remarcar para</label>
         <select id="nova-data" name="date">${otherDays.map(d => html`<option value="${d.date}">${formatDateLong(d.date)}</option>`)}</select></div>
+        ${hourly() ? html`<div class="campo"><label for="nova-hora">Horário</label><select id="nova-hora" name="start"></select></div>` : ''}
         <button class="placa-botao" type="submit">Remarcar</button>` : html`<p>Não há outro dia livre para remarcar agora.</p>`}
         <button class="botao-giz" type="button" id="cancelar-reserva">Cancelar agendamento</button></form>` : ''}
       <p id="gerir-status" role="status" tabindex="-1">${notice}</p><a class="link-giz" href="./">Voltar aos serviços</a>`;
@@ -691,10 +794,19 @@ async function renderManaged(token, notice = '') {
       try { await api.manageBooking(token, patch); await renderManaged(token, done); }
       catch (error) { status.textContent = error.message; form.querySelectorAll('button').forEach(b => b.disabled = false); }
     }
+    const fillTimes = () => {
+      const day = otherDays.find(d => d.date === form.elements.date.value);
+      form.elements.start.innerHTML = day.slots.filter(s => !isCurrent(day, s)).map(s => html`<option value="${s.time}">${hourLabel(s.time)}</option>`).join('');
+    };
+    if (hourly() && otherDays.length) {
+      fillTimes();
+      form.elements.date.addEventListener('change', fillTimes);
+    }
     form?.addEventListener('submit', event => {
       event.preventDefault();
-      const { value } = form.elements.date;
-      change({ action: 'remarcar', date: value }, `Pronto: remarcado para ${formatDateLong(value)}.`);
+      const date = form.elements.date.value;
+      const start = form.elements.start?.value;
+      change({ action: 'remarcar', date, start }, `Pronto: remarcado para ${formatDateLong(date)}${start ? `, às ${hourLabel(start)}` : ''}.`);
     });
     $('#cancelar-reserva')?.addEventListener('click', () => { if (confirm('Cancelar este agendamento e liberar a vaga?')) change({ action: 'cancelar' }, 'Agendamento cancelado. A vaga foi liberada.'); });
   } catch (error) { section.innerHTML = html`<h2 id="pintado-titulo">Não foi possível abrir a reserva</h2><p>${error.code === 'NOT_FOUND' ? 'Link inválido ou expirado.' : error.message}</p><a href="./" class="link-giz">Voltar ao site</a>`; }

@@ -117,3 +117,12 @@ create table if not exists seguranca (
   key text primary key, value jsonb not null, expires_at timestamptz not null
 );
 create index if not exists seguranca_expira on seguranca(expires_at);
+
+-- Migração aditiva: preço por porte (P/M/G) e adicional opcional por serviço.
+-- Sem esses dados, o serviço segue com o preço único de price_cents.
+alter table servicos add column if not exists prices_by_size jsonb;
+alter table servicos add column if not exists addon jsonb;
+alter table veiculos add column if not exists size text check (size in ('P', 'M', 'G'));
+alter table agendamentos add column if not exists size text check (size in ('P', 'M', 'G'));
+alter table agendamentos add column if not exists addon_name text;
+alter table agendamentos add column if not exists addon_cents int not null default 0 check (addon_cents >= 0);

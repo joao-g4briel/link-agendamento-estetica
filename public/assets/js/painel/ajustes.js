@@ -103,6 +103,16 @@ export default async function ajustes(root, { params }) {
         <h2 class="secao__titulo" id="t-agenda">Regras da agenda</h2>
         <div class="form__linha form__linha--2">
           <div class="campo">
+            <label for="a-modo">Como o cliente agenda</label>
+            <select id="a-modo" name="bookingMode">${[['dia', 'Escolhe só o dia'], ['horario', 'Escolhe o dia e o horário']].map(([v, l]) => opt(v, l, settings.bookingMode || 'dia'))}</select>
+            <p class="campo__dica">Só o dia: o carro chega a partir da abertura. Dia e horário: o cliente escolhe a hora de chegada no link.</p>
+          </div>
+          <div class="campo" id="campo-por-horario" ${settings.bookingMode === 'horario' ? '' : html`hidden`}>
+            <label for="a-por-horario">Carros por horário</label>
+            <input id="a-por-horario" name="carsPerSlot" type="number" inputmode="numeric" min="1" max="12" value="${settings.carsPerSlot || 1}">
+            <p class="campo__dica">Quantos carros podem chegar no mesmo horário. Quando lota, o horário some do link. Pelo painel você ainda pode encaixar.</p>
+          </div>
+          <div class="campo">
             <label for="a-limite">Limite de carros por dia</label>
             <input id="a-limite" name="maxCarsPerDay" type="number" inputmode="numeric" min="0" max="50" value="${settings.maxCarsPerDay || 0}">
             <p class="campo__dica">0 = sem limite. Ao chegar no limite, o dia aparece lotado no link. Pelo painel você ainda pode encaixar.</p>
@@ -245,6 +255,9 @@ export default async function ajustes(root, { params }) {
   });
 
   // Regras da agenda
+  $('#a-modo', root).addEventListener('change', (event) => {
+    $('#campo-por-horario', root).hidden = event.target.value !== 'horario';
+  });
   bindSubmit($('#f-agenda', root), async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -254,8 +267,15 @@ export default async function ajustes(root, { params }) {
       showFieldErrors(form, { maxCarsPerDay: 'Use um número inteiro de 0 a 50.' });
       return;
     }
+    const carsPerSlot = Number(data.get('carsPerSlot'));
+    if (!Number.isInteger(carsPerSlot) || carsPerSlot < 1 || carsPerSlot > 12) {
+      showFieldErrors(form, { carsPerSlot: 'Use um número inteiro de 1 a 12.' });
+      return;
+    }
     showFieldErrors(form, {});
     await api.saveSettings({
+      bookingMode: data.get('bookingMode'),
+      carsPerSlot,
       maxCarsPerDay,
       slotStep: Number(data.get('slotStep')),
       minNoticeMinutes: Number(data.get('minNoticeMinutes')),

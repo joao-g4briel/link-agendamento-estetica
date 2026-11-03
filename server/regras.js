@@ -4,9 +4,10 @@
 // transação e grava o que mudou.
 
 import { randomBytes, randomUUID } from 'node:crypto';
-import { blockFor, dayLoad, dayOpening, daySlots, firstFreeDay, hoursFor, rangeDays, OCCUPYING } from '../public/assets/js/core/availability.js';
+import { blockFor, dayLoad, dayOffer, dayOpening, daySlots, firstFreeDay, hoursFor, isHourly, rangeDays, OCCUPYING } from '../public/assets/js/core/availability.js';
 import { addDays, addInterval, diffDays, isISODate, nowMinutes, parseInterval, today } from '../public/assets/js/core/dates.js';
 import { formatPlate, isValidPhone, normalizePhone } from '../public/assets/js/core/format.js';
+import { isSize, needsSize, SIZES, totalFor } from '../public/assets/js/core/precos.js';
 
 export class ApiError extends Error {
   constructor(code, message, status = 400) {
@@ -37,10 +38,19 @@ function vehicleFor(db, customer, input) {
   if (!vehicle && plate) vehicle = db.vehicles.find(v => v.customerId === customer.id && v.plate === plate);
   // Sem placa, só reutiliza identidade explícita; nomes parecidos não são prova.
   if (!vehicle) {
-    vehicle = { id: uid('car'), customerId: customer.id, vehicle: text(input.vehicle, 60), plate };
+    vehicle = { id: uid('car'), customerId: customer.id, vehicle: text(input.vehicle, 60), plate, size: null };
     db.vehicles.push(vehicle);
   }
+  if (isSize(input.size)) vehicle.size = input.size;
   return vehicle;
+}
+
+/** O valor é sempre calculado aqui: o navegador só informa o porte e se quer o adicional. */
+function pricing(service, input) {
+  const size = isSize(input.size) ? input.size : null;
+  if (needsSize(service) && !size) throw invalid('Escolha o porte do carro.', { size: 'Escolha o porte do carro.' });
+  const addon = input.addon && service.addon ? service.addon : null;
+  return { size, priceCents: totalFor(service, size, Boolean(addon)), addonName: addon?.name || null, addonCents: addon ? addon.prices[size] : 0 };
 }
 
 function bookingResult(db, appointment) {
@@ -48,7 +58,7 @@ function bookingResult(db, appointment) {
   const customer = db.customers.find(c => c.id === appointment.customerId);
   return clone({ appointment, service, customer: { name: appointment.customerName || customer.name, phone: customer.phone },
     nextReturn: service.returnInterval ? { date: addInterval(appointment.date, service.returnInterval), action: service.returnAction } : null,
-    shop: { name: db.settings.name, address: db.settings.address, whatsapp: db.settings.whatsapp } });
+    shop: { name: db.settings.name, address: db.settings.address, whatsapp: db.settings.whatsapp, bookingMode: db.settings.bookingMode || 'dia' } });
 }
 
 function invalid(message, fields) {
@@ -89,7 +99,7 @@ export function getPublicProfile(db) {
   const next = services.length && bookingOpen ? firstFreeDay(baseContext(db)) : null;
   const { name, tagline, address, whatsapp, instagram, hours, horizonDays, capacity, isExample } = db.settings;
   return clone({
-    shop: { name, tagline, address, whatsapp, instagram, hours, horizonDays, capacity, isExample, bookingOpen },
+    shop: { name, tagline, address, whatsapp, instagram, hours, horizonDays, capacity, isExample, bookingOpen, bookingMode: db.settings.bookingMode || 'dia' },
     local: process.env.STORE_MODE === 'local',
     services,
     nextFree: next,
@@ -129,6 +139,7 @@ export function getReturnInvite(db, token) {
     vehicle: ret.vehicle,
     plate: ret.plate,
     vehicleId: ret.vehicleId,
+    size: db.vehicles?.find((v) => v.id === ret.vehicleId)?.size || null,
   });
 }
 
@@ -158,7 +169,7 @@ function validateBooking(input) {
  */
 export function createBooking(db, input, { source = 'link', force = false } = {}) {
   if (input.idempotencyKey && !/^[a-zA-Z0-9-]{16,80}$/.test(input.idempotencyKey)) throw invalid('Tentativa de agendamento inválida.');
-  const fingerprint = JSON.stringify([input.serviceId, input.date, input.start, text(input.name, 80), normalizePhone(input.phone), input.vehicle, input.plate || '', input.notes || '', source]);
+  const fingerprint = JSON.stringify([input.serviceId, input.date, input.start, text(input.name, 80), normalizePhone(input.phone), input.vehicle, input.plate || '', input.notes || '', source, input.size || '', Boolean(input.addon)]);
   const existing = input.idempotencyKey && db.appointments.find(a => a.idempotencyKey === input.idempotencyKey);
   if (existing) {
     if (existing.requestFingerprint !== fingerprint) throw new ApiError('IDEMPOTENCY_CONFLICT', 'Os dados desta tentativa mudaram. Inicie um novo agendamento.', 409);
@@ -167,24 +178,26 @@ export function createBooking(db, input, { source = 'link', force = false } = {}
   validateBooking(input);
   const service = findService(db, input.serviceId);
   if (!service.active) throw new ApiError('NOT_FOUND', 'Esse serviço não está mais disponível.', 404);
+  const price = pricing(service, input);
   if (input.date < today() || input.date > addDays(today(), source === 'painel' ? 365 : (db.settings.horizonDays || 30) - 1)) throw invalid('Escolha uma data dentro do período disponível.', { start: 'Data fora do período disponível.' });
   if (!force) {
     if (source !== 'painel' && !isBookingOpen(db.settings)) {
       throw new ApiError('CLOSED', 'A agenda online está fechada no momento. Chame a estética no WhatsApp para marcar.', 409);
     }
-    const day = source === 'painel' ? daySlots({ ...baseContext(db), date: input.date }) : dayOpening({ ...baseContext(db), date: input.date });
+    const choosesTime = source === 'painel' || isHourly(db.settings);
+    const day = choosesTime ? daySlots({ ...baseContext(db), date: input.date }) : dayOpening({ ...baseContext(db), date: input.date });
     if (!day.slots.length) {
       throw new ApiError('SLOT_TAKEN', 'Esse dia acabou de lotar. Escolha outro, por favor.', 409);
     }
-    // Pelo link o carro chega a partir da abertura: o horário gravado é o dela.
-    if (source === 'painel') {
-      if (!day.slots.some(s => s.time === input.start)) throw new ApiError('SLOT_TAKEN', 'Escolha uma hora de chegada disponível.', 409);
+    // Agenda por dia: pelo link o carro chega a partir da abertura, e o horário gravado é o dela.
+    if (choosesTime) {
+      if (!day.slots.some(s => s.time === input.start)) throw new ApiError('SLOT_TAKEN', 'Esse horário acabou de ser ocupado. Escolha outro, por favor.', 409);
     } else input = { ...input, start: day.slots[0].time };
   }
   const customer = upsertCustomer(db, text(input.name, 80), input.phone);
   const invite = input.returnToken && db.returns.find(r => r.token === input.returnToken && r.customerId === customer.id && r.serviceId === service.id && ['pendente', 'avisado'].includes(r.status));
   if (input.returnToken && !invite) throw invalid('Esse convite não corresponde aos dados do agendamento.');
-  const vehicle = vehicleFor(db, customer, { ...input, vehicleId: invite?.vehicleId || (source === 'painel' ? input.vehicleId : undefined) });
+  const vehicle = vehicleFor(db, customer, { ...input, size: price.size, vehicleId: invite?.vehicleId || (source === 'painel' ? input.vehicleId : undefined) });
   const appointment = {
     id: uid('ag'),
     code: code(4),
@@ -197,7 +210,7 @@ export function createBooking(db, input, { source = 'link', force = false } = {}
     idempotencyKey: input.idempotencyKey || null,
     requestFingerprint: fingerprint,
     manageToken: randomBytes(24).toString('base64url'),
-    priceCents: service.priceCents,
+    ...price,
     vehicle: text(input.vehicle, 60),
     plate: formatPlate(input.plate || ''),
     notes: text(input.notes, 300),
@@ -275,6 +288,7 @@ function expandReturn(db, r) {
     customer: db.customers.find((c) => c.id === r.customerId) || { name: 'Cliente removido', phone: '' },
     service: db.services.find((s) => s.id === r.serviceId) || { name: 'Serviço removido' },
     daysLate: diffDays(r.dueDate, today()),
+    size: db.vehicles?.find((v) => v.id === r.vehicleId)?.size || null,
     booked: r.bookedAppointmentId ? db.appointments.find((a) => a.id === r.bookedAppointmentId) || null : null,
   };
 }
@@ -325,7 +339,7 @@ function customerCard(db, c) {
   const openReturn = db.returns
     .filter((r) => r.customerId === c.id && (r.status === 'pendente' || r.status === 'avisado'))
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0] || null;
-  const cars = [...new Map(history.map((a) => [a.vehicleId || a.plate || a.id, { id: a.vehicleId, vehicle: a.vehicle, plate: a.plate }])).values()];
+  const cars = [...new Map(history.map((a) => [a.vehicleId || a.plate || a.id, { id: a.vehicleId, vehicle: a.vehicle, plate: a.plate, size: a.size || null }])).values()];
   return {
     ...c,
     cars,
@@ -493,10 +507,24 @@ export function deleteService(db, id) {
   return { ok: true };
 }
 
+const validCents = (value) => Number.isSafeInteger(value) && value >= 0 && value <= 100000000;
+
+function sizePrices(prices, prefix, errors) {
+  const clean = {};
+  for (const { code } of SIZES) {
+    if (validCents(prices?.[code])) clean[code] = prices[code];
+    else errors[`${prefix}${code}`] = 'Informe um preço válido.';
+  }
+  return clean;
+}
+
 export function saveService(db, input) {
   const errors = {};
   if (!input.name || String(input.name).trim().length < 2) errors.name = 'Dê um nome ao serviço.';
-  if (!Number.isSafeInteger(input.priceCents) || input.priceCents < 0 || input.priceCents > 100000000) errors.priceCents = 'Informe um preço válido (pode ser 0).';
+  const pricesBySize = input.pricesBySize ? sizePrices(input.pricesBySize, 'price', errors) : null;
+  if (!pricesBySize && !validCents(input.priceCents)) errors.priceCents = 'Informe um preço válido (pode ser 0).';
+  const addon = input.addon ? { name: text(input.addon.name, 40), prices: sizePrices(input.addon.prices, 'addon', errors) } : null;
+  if (addon && addon.name.length < 2) errors.addonName = 'Dê um nome ao adicional.';
   if (String(input.description || '').length > 2000) errors.description = 'Use até 2.000 caracteres na descrição.';
   if (input.returnInterval && (!parseInterval(input.returnInterval) || parseInterval(input.returnInterval).n < 1 || parseInterval(input.returnInterval).n > 365)) errors.returnInterval = 'Informe um intervalo de retorno válido.';
   if (Object.keys(errors).length) throw invalid('Confira os campos do serviço.', errors);
@@ -506,11 +534,15 @@ export function saveService(db, input) {
     service = { id: uid('svc'), active: true, order: db.services.length };
     db.services.push(service);
   }
+  // Com preço por porte, o menor valor é a referência de "a partir de" nas listas.
+  const sizeValues = pricesBySize ? Object.values(pricesBySize) : [];
   Object.assign(service, {
     name: text(input.name, 40),
     description: text(input.description, 2000),
-    priceCents: Math.round(Number(input.priceCents)),
-    priceFrom: Boolean(input.priceFrom),
+    priceCents: pricesBySize ? Math.min(...sizeValues) : Math.round(Number(input.priceCents)),
+    priceFrom: pricesBySize ? new Set(sizeValues).size > 1 : Boolean(input.priceFrom),
+    pricesBySize,
+    addon,
     returnInterval: parseInterval(input.returnInterval) ? input.returnInterval : null,
     returnAction: text(input.returnAction, 60),
     active: input.active !== false,
@@ -536,7 +568,7 @@ export function getSettings(db) {
 
 const SETTINGS_KEYS = [
   'name', 'tagline', 'address', 'whatsapp', 'instagram', 'capacity', 'slotStep', 'minNoticeMinutes',
-  'horizonDays', 'hours', 'returnTemplate', 'publicUrl', 'maxCarsPerDay', 'bookingOpen',
+  'horizonDays', 'hours', 'returnTemplate', 'publicUrl', 'maxCarsPerDay', 'bookingOpen', 'bookingMode', 'carsPerSlot',
 ];
 
 export function saveSettings(db, patch) {
@@ -548,7 +580,8 @@ export function saveSettings(db, patch) {
   if ('whatsapp' in clean && clean.whatsapp && !isValidPhone(clean.whatsapp)) {
     throw invalid('Confira as configurações.', { whatsapp: 'WhatsApp com DDD, 10 ou 11 dígitos.' });
   }
-  const numbers = { capacity: [1, 12], slotStep: [5, 120], minNoticeMinutes: [0, 10080], horizonDays: [1, 90], maxCarsPerDay: [0, 50] };
+  if ('bookingMode' in clean && !['dia', 'horario'].includes(clean.bookingMode)) throw invalid('Escolha agenda por dia ou por horário.');
+  const numbers = { capacity: [1, 12], carsPerSlot: [1, 12], slotStep: [5, 120], minNoticeMinutes: [0, 10080], horizonDays: [1, 90], maxCarsPerDay: [0, 50] };
   for (const [key, [min, max]] of Object.entries(numbers)) if (key in clean && (!Number.isInteger(clean[key]) || clean[key] < min || clean[key] > max)) throw invalid('Confira as regras da agenda.', { [key]: `Informe um inteiro entre ${min} e ${max}.` });
   if ('bookingOpen' in clean && typeof clean.bookingOpen !== 'boolean') throw invalid('Situação da agenda inválida.');
   if ('hours' in clean) {
@@ -612,8 +645,12 @@ export function editAppointment(db, id, input, { force = false } = {}) {
     if (input.date < today() || input.date > addDays(today(), 365)) throw invalid('Escolha uma data entre hoje e o próximo ano.');
     if (!force && !daySlots({ ...baseContext(db), date: input.date, ignoreId: id }).slots.some(s => s.time === input.start)) throw new ApiError('SLOT_TAKEN', 'Esse dia ou horário de chegada não está disponível.', 409);
   }
+  // Atendimento antigo sem porte mantém o valor gravado; serviço trocado ou porte novo recalculam.
+  const sameExtras = (input.size || null) === (a.size || null) && Boolean(input.addon) === Boolean(a.addonName);
+  const keepPrice = (sameBooking && sameExtras) || (service.id === a.serviceId && needsSize(service) && !input.size);
+  const price = keepPrice ? null : pricing(service, input);
   const customer = upsertCustomer(db, text(input.name, 80), input.phone);
-  const vehicle = vehicleFor(db, customer, { ...input, vehicleId: input.vehicleId || a.vehicleId });
+  const vehicle = vehicleFor(db, customer, { ...input, size: price?.size, vehicleId: input.vehicleId || a.vehicleId });
   const before = { date: a.date, start: a.start, serviceId: a.serviceId, status: a.status };
   for (const r of db.returns) {
     if (r.appointmentId === id && !sameBooking) r.status = 'descartado';
@@ -622,7 +659,8 @@ export function editAppointment(db, id, input, { force = false } = {}) {
   Object.assign(a, { date: input.date, start: input.start, serviceId: service.id,
     customerId: customer.id, customerName: text(input.name, 80), vehicleId: vehicle.id,
     vehicle: text(input.vehicle, 60), plate: formatPlate(input.plate), notes: text(input.notes, 300) });
-  if (!sameBooking) Object.assign(a, { priceCents: service.priceCents, status: 'agendado', completedAt: null, autoCompleted: false });
+  if (price) Object.assign(a, price);
+  if (!sameBooking) Object.assign(a, { status: 'agendado', completedAt: null, autoCompleted: false });
   record(db, sameBooking ? 'agendamento.editado' : 'agendamento.remarcado', id, { before, date: a.date, start: a.start });
   return clone({ appointment: expandAppointment(db, a) });
 }
@@ -634,10 +672,12 @@ export function manageBooking(db, token, patch) {
   if (!OPEN.has(a.status) || a.date < today() || (a.date === today() && a.start <= `${String(Math.floor(nowMinutes() / 60)).padStart(2, '0')}:${String(nowMinutes() % 60).padStart(2, '0')}`)) throw new ApiError('CLOSED', 'O prazo de alteração acabou. Fale com a estética.', 409);
   if (patch.action === 'cancelar') return setAppointmentStatus(db, a.id, 'cancelado');
   if (patch.action !== 'remarcar' || !isISODate(patch.date) || patch.date >= addDays(today(), db.settings.horizonDays || 30) || !isBookingOpen(db.settings)) throw invalid('Escolha um dia disponível para remarcar.');
-  const day = dayOpening({ ...baseContext(db), date: patch.date, ignoreId: a.id });
+  const day = dayOffer({ ...baseContext(db), date: patch.date, ignoreId: a.id });
   if (!day.slots.length) throw new ApiError('SLOT_TAKEN', 'Esse dia não está disponível.', 409);
+  const start = isHourly(db.settings) ? patch.start : day.slots[0].time;
+  if (!day.slots.some(s => s.time === start)) throw new ApiError('SLOT_TAKEN', 'Esse horário não está disponível.', 409);
   const c = db.customers.find(c => c.id === a.customerId);
-  return editAppointment(db, a.id, { ...a, name: a.customerName || c.name, phone: c.phone, date: patch.date, start: day.slots[0].time });
+  return editAppointment(db, a.id, { ...a, name: a.customerName || c.name, phone: c.phone, date: patch.date, start, addon: Boolean(a.addonName) });
 }
 
 export function saveCustomer(db, id, input) {

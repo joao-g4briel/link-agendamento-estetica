@@ -72,6 +72,12 @@
         </h2>
         <form class="ficha" id="ficha" novalidate>
           <div class="ficha__erro" id="ficha-erro" role="alert" tabindex="-1" hidden></div>
+          <div class="campo" id="campo-porte" hidden>
+            <span class="campo__rotulo" id="porte-rotulo">Porte do carro</span>
+            <div class="portes" id="portes" role="radiogroup" aria-labelledby="porte-rotulo"></div>
+            <p class="campo__erro" id="e-size" hidden></p>
+          </div>
+          <label class="check-publica" id="campo-adicional" hidden><input id="f-adicional" type="checkbox"> <span id="adicional-texto"></span></label>
           <div class="campo">
             <label for="f-nome">Nome</label>
             <input id="f-nome" name="name" autocomplete="name" autocapitalize="words" required>

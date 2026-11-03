@@ -853,6 +853,7 @@ h1, h2, h3 { text-wrap: balance; }
 
 /* Mesmo peso do seletor geral de .campo input, para o espaço do prefixo valer. */
 .campo .prefixo input:not([type='checkbox']):not([type='radio']) { padding-left: 40px; }
+.form__linha.linha-portes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 .check {
   display: flex;
