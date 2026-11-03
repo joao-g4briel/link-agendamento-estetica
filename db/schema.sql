@@ -92,8 +92,10 @@ alter table agendamentos add constraint agendamentos_status_check check (status 
 
 -- Sem placa, cada atendimento antigo ganha identidade própria, sem fusão por nome.
 insert into veiculos(id, customer_id, vehicle, plate)
-select 'car-legado-' || min(id), customer_id, min(vehicle), plate from agendamentos
-where vehicle_id is null and plate <> '' group by customer_id, plate
+select 'car-legado-' || min(a.id), a.customer_id, min(a.vehicle), a.plate from agendamentos a
+where a.vehicle_id is null and a.plate <> ''
+  and not exists (select 1 from veiculos v where v.customer_id = a.customer_id and v.plate = a.plate)
+group by a.customer_id, a.plate
 on conflict (id) do nothing;
 update agendamentos a set vehicle_id = v.id from veiculos v
 where a.vehicle_id is null and a.plate <> '' and v.customer_id = a.customer_id and v.plate = a.plate;
