@@ -6,7 +6,7 @@ import { addDays, nowMinutes, parseISODate, toMinutes, today, weekday } from './
 import {
   firstName, formatDateLong, formatDateShort, formatInterval, formatMonthYear,
   formatPhone, formatPlate, formatPrice, formatRelativeDay, html, isValidPhone, MONTHS, raw,
-  WEEKDAYS, WEEKDAYS_SHORT,
+  statusLabel, WEEKDAYS, WEEKDAYS_SHORT,
 } from './core/format.js';
 import { icon } from './core/icons.js';
 import { waLink } from './core/whatsapp.js';
@@ -231,6 +231,7 @@ async function selectService(id, { scroll = true } = {}) {
   } catch {
     if (request !== availabilityRequest) return;
     $('#dias').classList.remove('dias--carregando');
+    $('#dias').removeAttribute('aria-busy');
     $('#dias').innerHTML = '';
     $('#horarios').innerHTML = html`<p class="vazio-giz">Não deu para ver os dias livres agora.
       <button type="button" class="link-giz" data-acao="recarregar">Tentar de novo</button></p>`;
@@ -255,11 +256,9 @@ function renderDays() {
   container.classList.remove('dias--carregando');
   container.removeAttribute('aria-busy');
 
+  // Sem nenhum dia livre, quem explica e oferece o encaixe é renderDayNote.
   if (!state.days.some((d) => d.slots.length)) {
-    const { shop } = state.profile;
     container.innerHTML = '';
-    $('#horarios').innerHTML = html`<p class="vazio-giz">Sem dia livre para ${state.service.name.toLowerCase()} nos próximos ${state.days.length} dias.
-      ${shop.whatsapp ? html`<a href="${waLink(shop.whatsapp, `Oi! Queria um encaixe para ${state.service.name.toLowerCase()}.`)}" target="_blank" rel="noopener">Peça um encaixe no WhatsApp</a>.` : ''}</p>`;
     return;
   }
 
@@ -287,11 +286,18 @@ function renderDays() {
   if (selected) selected.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 
-/** Embaixo dos dias: o aviso de erro (dia que lotou) ou a hora de chegada do dia escolhido. */
+function noDaysNote() {
+  const { shop } = state.profile;
+  return html`<p class="vazio-giz">Sem dia livre para ${state.service.name.toLowerCase()} nos próximos ${state.days.length} dias.
+    ${shop.whatsapp ? html`<a href="${waLink(shop.whatsapp, `Oi! Queria um encaixe para ${state.service.name.toLowerCase()}.`)}" target="_blank" rel="noopener">Peça um encaixe no WhatsApp</a>.` : ''}</p>`;
+}
+
+/** Embaixo dos dias: o aviso de erro (dia que lotou), a falta de dias ou a hora de chegada do dia escolhido. */
 function renderDayNote(message = '') {
   const day = state.days.find((d) => d.date === state.date && d.slots.length);
   $('#horarios').innerHTML = html`
     ${message ? html`<p class="vazio-giz" role="alert">${message}</p>` : ''}
+    ${state.days.some((d) => d.slots.length) ? '' : noDaysNote()}
     ${day ? html`<p class="giz-nota">${icon('clock')}<span>Traga o carro na ${formatDateLong(day.date)}, <strong>a partir das ${hourLabel(day.slots[0].time)}</strong>.</span></p>` : ''}
   `;
 }
@@ -561,6 +567,8 @@ function startOver() {
   api.getPublicProfile().then((profile) => {
     state.profile = profile;
     renderHeader();
+  }).catch(() => {
+    // Sem rede: o letreiro segue com os dados já carregados.
   });
   $('#etapa-servico').scrollIntoView({ block: 'start' });
 }
@@ -636,13 +644,17 @@ async function init() {
 
     if (reservation) { await renderManaged(reservation); return; }
 
+    // Quem já pediu para lembrar continua lembrado, ou a próxima reserva apagaria os dados.
+    const remembered = readRememberedClient();
+    $('#lembrar-dados').checked = Boolean(remembered);
+
     if (profile.shop.bookingOpen === false) {
       // Agenda fechada: só a tabela de serviços, sem escolher horário.
     } else if (invite && !invite.alreadyBooked) {
       prefill(invite);
       selectService(invite.serviceId, { scroll: false });
     } else {
-      prefill(readRememberedClient());
+      prefill(remembered);
       if (preset) selectService(preset);
     }
   } catch {
@@ -650,7 +662,7 @@ async function init() {
   }
 }
 
-async function renderManaged(token) {
+async function renderManaged(token, notice = '') {
   $('#agendar').hidden = true;
   const section = $('#pintado');
   section.hidden = false;
@@ -658,25 +670,34 @@ async function renderManaged(token) {
     const result = await api.getManagedBooking(token);
     const a = result.appointment;
     const days = result.canChange ? await api.getAvailability(a.serviceId) : [];
+    const otherDays = days.filter(d => d.slots.length && d.date !== a.date);
+    const guidance = a.status === 'cancelado' ? 'Este agendamento foi cancelado.'
+      : result.canChange ? result.cancelNotice : 'O prazo de alteração acabou. Precisando, fale com a estética.';
     section.innerHTML = html`<h2 class="etapa__titulo" id="pintado-titulo">Seu agendamento</h2>
-      <p>${result.service.name} · ${formatDateLong(a.date)} · chegada ${a.start}</p>
-      <p>${a.vehicle} · situação: ${a.status}</p>
-      <p>${result.cancelNotice}</p>
-      ${result.canChange ? html`<form id="gerir-reserva" class="ficha"><div class="campo"><label for="nova-data">Remarcar para</label>
-        <select id="nova-data" name="date">${days.filter(d => d.slots.length).map(d => html`<option value="${d.date}">${formatDateLong(d.date)}</option>`)}</select></div>
-        <button class="placa-botao" type="submit">Remarcar</button>
+      <p>${result.service.name} · ${formatDateLong(a.date)} · chegada a partir das ${hourLabel(a.start)}</p>
+      <p>${a.vehicle} · situação: ${statusLabel(a.status)}</p>
+      <p>${guidance}</p>
+      ${result.canChange ? html`<form id="gerir-reserva" class="ficha">
+        ${otherDays.length ? html`<div class="campo"><label for="nova-data">Remarcar para</label>
+        <select id="nova-data" name="date">${otherDays.map(d => html`<option value="${d.date}">${formatDateLong(d.date)}</option>`)}</select></div>
+        <button class="placa-botao" type="submit">Remarcar</button>` : html`<p>Não há outro dia livre para remarcar agora.</p>`}
         <button class="botao-giz" type="button" id="cancelar-reserva">Cancelar agendamento</button></form>` : ''}
-      <p id="gerir-status" role="status"></p><a class="link-giz" href="./">Voltar aos serviços</a>`;
+      <p id="gerir-status" role="status" tabindex="-1">${notice}</p><a class="link-giz" href="./">Voltar aos serviços</a>`;
     const status = $('#gerir-status');
     const form = $('#gerir-reserva');
-    async function change(patch) {
+    if (notice) status.focus({ preventScroll: true });
+    async function change(patch, done) {
       form.querySelectorAll('button').forEach(b => b.disabled = true);
-      try { await api.manageBooking(token, patch); await renderManaged(token); }
+      try { await api.manageBooking(token, patch); await renderManaged(token, done); }
       catch (error) { status.textContent = error.message; form.querySelectorAll('button').forEach(b => b.disabled = false); }
     }
-    form?.addEventListener('submit', event => { event.preventDefault(); change({ action: 'remarcar', date: form.elements.date.value }); });
-    $('#cancelar-reserva')?.addEventListener('click', () => { if (confirm('Cancelar este agendamento e liberar a vaga?')) change({ action: 'cancelar' }); });
-  } catch (error) { section.innerHTML = html`<h2 id="pintado-titulo">Não foi possível abrir a reserva</h2><p>${error.message}</p><a href="./" class="link-giz">Voltar ao site</a>`; }
+    form?.addEventListener('submit', event => {
+      event.preventDefault();
+      const { value } = form.elements.date;
+      change({ action: 'remarcar', date: value }, `Pronto: remarcado para ${formatDateLong(value)}.`);
+    });
+    $('#cancelar-reserva')?.addEventListener('click', () => { if (confirm('Cancelar este agendamento e liberar a vaga?')) change({ action: 'cancelar' }, 'Agendamento cancelado. A vaga foi liberada.'); });
+  } catch (error) { section.innerHTML = html`<h2 id="pintado-titulo">Não foi possível abrir a reserva</h2><p>${error.code === 'NOT_FOUND' ? 'Link inválido ou expirado.' : error.message}</p><a href="./" class="link-giz">Voltar ao site</a>`; }
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

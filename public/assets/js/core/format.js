@@ -15,6 +15,19 @@ export const MONTHS = [
 ];
 export const MONTHS_SHORT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
+export const STATUS_LABELS = {
+  agendado: 'agendado',
+  confirmado: 'confirmado',
+  recebido: 'recebido',
+  em_servico: 'em serviço',
+  pronto: 'pronto para retirada',
+  concluido: 'concluído',
+  faltou: 'não veio',
+  cancelado: 'cancelado',
+};
+
+export const statusLabel = (status) => STATUS_LABELS[status] || status;
+
 export function formatPrice(cents) {
   return Number(cents) % 100 === 0 ? money.format(cents / 100) : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cents / 100);
 }

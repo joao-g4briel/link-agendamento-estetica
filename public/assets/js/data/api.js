@@ -13,6 +13,12 @@ export class ApiError extends Error {
 const BASE = new URL('../../../api/', import.meta.url).pathname;
 const listeners = new Set();
 let cachedSettings = null;
+let unauthorizedHandler = null;
+
+/** O painel registra aqui o que fazer quando a sessão acaba no meio do uso. */
+export function onUnauthorized(cb) {
+  unauthorizedHandler = cb;
+}
 
 /** Avisa as telas do painel quando algo muda (para atualizarem as listas). */
 export function subscribe(cb) {
@@ -41,6 +47,7 @@ async function call(path, { method = 'GET', body, query } = {}) {
   const data = await response.json().catch(() => null);
   if (!response.ok) {
     const e = data?.error || {};
+    if (e.code === 'UNAUTHORIZED') unauthorizedHandler?.();
     throw new ApiError(e.code || 'SERVER', e.message || 'Algo deu errado. Tente de novo.', e.fields);
   }
   if (method !== 'GET') changed();

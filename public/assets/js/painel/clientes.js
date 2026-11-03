@@ -1,21 +1,24 @@
 // Clientes: todo mundo que já agendou, com carros, visitas e retorno aberto.
 
 import * as api from '../data/api.js';
-import { formatDateShort, formatDateShortYear, formatPhone, formatRelativeDay } from '../core/format.js';
+import { formatDateShort, formatDateShortYear, formatPhone, formatRelativeDay, statusLabel } from '../core/format.js';
 import { waLink } from '../core/whatsapp.js';
 import { $, html, icon, placa, toast, bindSubmit } from './ui.js';
+
+const titleLine = (c) => html`${c.name} ${c.cars.map((car) => placa(car.plate))}`;
+const carsLine = (c) => `${c.cars.map((car) => car.vehicle).join(' · ')} · ${formatPhone(c.phone)}`;
 
 function row(c) {
   return html`
     <li class="item item--sem-hora" data-busca="${[c.name, c.phone, ...c.cars.map((car) => `${car.vehicle} ${car.plate}`)].join(' ').toLowerCase()}">
       <div class="item__corpo">
-        <p class="item__titulo">${c.name} ${c.cars.map((car) => placa(car.plate))}</p>
-        <p class="item__sub">${c.cars.map((car) => car.vehicle).join(' · ')} · ${formatPhone(c.phone)}</p>
+        <p class="item__titulo">${titleLine(c)}</p>
+        <p class="item__sub">${carsLine(c)}</p>
         <p class="item__sub">${c.visits} ${c.visits === 1 ? 'visita' : 'visitas'}${c.last ? ` · última em ${formatDateShortYear(c.last.date)}` : ''}${c.next ? ` · próxima ${formatRelativeDay(c.next.date)} às ${c.next.start}` : ''}${c.openReturn ? ` · retorno ${formatDateShortYear(c.openReturn.dueDate)}` : ''}</p>
         <details class="dobra"><summary>Ficha, veículos e histórico</summary>
           <div class="dobra__conteudo">
             ${c.cars.map(car => html`<details class="dobra"><summary>${car.vehicle} ${car.plate || 'sem placa'}</summary>
-              <ul class="historico" role="list">${c.history.filter(a => car.id ? a.vehicleId === car.id : a.plate === car.plate && a.vehicle === car.vehicle).map(a => html`<li>${formatDateShortYear(a.date)} · ${a.service.name} · ${a.status} <a href="#/novo?editar=${a.id}">Abrir / remarcar</a></li>`)}</ul></details>`)}
+              <ul class="historico" role="list">${c.history.filter(a => car.id ? a.vehicleId === car.id : a.plate === car.plate && a.vehicle === car.vehicle).map(a => html`<li>${formatDateShortYear(a.date)} · ${a.service.name} · ${statusLabel(a.status)} <a href="#/novo?editar=${a.id}">Abrir / remarcar</a></li>`)}</ul></details>`)}
             <form data-cliente="${c.id}" class="form">
               <div class="campo"><label for="cliente-nome-${c.id}">Nome</label><input id="cliente-nome-${c.id}" name="name" value="${c.name}" maxlength="80" required></div>
               <div class="campo"><label for="cliente-phone-${c.id}">WhatsApp</label><input id="cliente-phone-${c.id}" name="phone" value="${formatPhone(c.phone)}" type="tel" required></div>
@@ -68,7 +71,12 @@ export default async function clientes(root) {
     if (append) box.insertAdjacentHTML('beforeend', content); else box.innerHTML = content;
     if (nextOffset !== null) box.insertAdjacentHTML('beforeend', String(html`<button type="button" class="btn btn--linha" data-mais-clientes>Carregar mais clientes</button>`));
     box.querySelectorAll('form[data-cliente]:not([data-bound])').forEach(form => { form.dataset.bound = 'true'; bindSubmit(form, async () => {
-      await api.saveCustomer(form.dataset.cliente, Object.fromEntries(new FormData(form)));
+      const saved = await api.saveCustomer(form.dataset.cliente, Object.fromEntries(new FormData(form)));
+      // A lista não recarrega com a ficha aberta: atualiza a linha aqui.
+      const item = form.closest('[data-busca]');
+      $('.item__titulo', item).innerHTML = String(titleLine(saved));
+      $('.item__sub', item).textContent = carsLine(saved);
+      form.elements.phone.value = formatPhone(saved.phone);
       toast('Contato salvo. O histórico dos atendimentos foi preservado.');
     }); });
     $('#clientes-total', root).textContent = `${box.querySelectorAll('[data-busca]').length} de ${result.total}`;

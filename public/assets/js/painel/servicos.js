@@ -37,8 +37,16 @@ async function listView(root) {
 
   const box = $('#lista-servicos', root);
 
+  // A lista é redesenhada a cada atualização: o foco volta ao mesmo controle.
+  function restoreFocus(label) {
+    const target = label && [...box.querySelectorAll('[aria-label]')].find((el) => el.getAttribute('aria-label') === label);
+    if (!target) return;
+    (target.disabled ? target.closest('[data-servico]').querySelector('[data-mover]:not(:disabled)') : target)?.focus();
+  }
+
   async function load() {
     const services = await api.listServices();
+    const focused = box.contains(document.activeElement) ? document.activeElement.getAttribute('aria-label') : null;
     box.innerHTML = String(services.length
       ? html`<ul class="lista" role="list">${services.map((s, i) => html`
           <li class="item item--sem-hora" data-servico="${s.id}">
@@ -54,6 +62,7 @@ async function listView(root) {
             </div>
           </li>`)}</ul>`
       : html`<p class="vazio"><strong>Nenhum serviço ainda.</strong> Cadastre o primeiro para o link ter o que mostrar.</p>`);
+    restoreFocus(focused);
   }
 
   box.addEventListener('click', async (event) => {
@@ -83,8 +92,7 @@ async function listView(root) {
     try {
       await api.moveService(id, Number(button.dataset.mover));
       await load();
-      const again = [...box.querySelectorAll('[data-mover]')].find((b) => b.getAttribute('aria-label') === label && !b.disabled);
-      again?.focus();
+      restoreFocus(label);
     } catch (error) {
       toast(error.message || 'Não deu para mudar a ordem. Tente de novo.');
       button.disabled = false;

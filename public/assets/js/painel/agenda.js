@@ -1,7 +1,7 @@
 // Agenda da semana: um bloco por dia, ocupação em tinta sobre giz.
 
 import * as api from '../data/api.js';
-import { addDays, parseISODate, startOfWeek, today } from '../core/dates.js';
+import { addDays, isISODate, parseISODate, startOfWeek, today } from '../core/dates.js';
 import { formatDateLong, MONTHS } from '../core/format.js';
 import { $, appointmentRow, bindAppointmentActions, capitalize, hourLabel, html, icon } from './ui.js';
 
@@ -40,7 +40,8 @@ function dayBlock(day, settings, limit) {
 }
 
 export default async function agenda(root, { params }) {
-  const from = startOfWeek(params.get('semana') || today());
+  const week = params.get('semana');
+  const from = startOfWeek(isISODate(week) ? week : today());
   const thisWeek = startOfWeek(today());
 
   root.innerHTML = String(html`

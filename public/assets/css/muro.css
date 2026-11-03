@@ -239,6 +239,7 @@ a { color: inherit; text-underline-offset: 0.22em; text-decoration-thickness: 1p
 
 .etapa__cabeca {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
@@ -658,6 +659,7 @@ a { color: inherit; text-underline-offset: 0.22em; text-decoration-thickness: 1p
 }
 
 .campo input,
+.campo select,
 .campo textarea {
   width: 100%;
   min-height: 52px;
@@ -683,9 +685,11 @@ a { color: inherit; text-underline-offset: 0.22em; text-decoration-thickness: 1p
 .campo textarea::placeholder { color: var(--prata-3); opacity: 1; }
 
 .campo input:hover,
+.campo select:hover,
 .campo textarea:hover { border-color: #8d8576; }
 
 .campo input:focus-visible,
+.campo select:focus-visible,
 .campo textarea:focus-visible {
   border-color: var(--ouro);
   outline: 2px solid rgb(248 184 10 / 0.35);

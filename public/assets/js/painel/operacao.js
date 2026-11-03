@@ -3,6 +3,19 @@ import { $, html, toast, bindSubmit } from './ui.js';
 import { formatPrice } from '../core/format.js';
 import { waLink } from '../core/whatsapp.js';
 
+const EVENTS = {
+  'agendamento.criado': 'Agendamento criado',
+  'agendamento.status': 'Situação do atendimento alterada',
+  'agendamento.editado': 'Agendamento editado',
+  'agendamento.remarcado': 'Agendamento remarcado',
+  'servico.salvo': 'Serviço salvo',
+  'ajustes.salvos': 'Ajustes salvos',
+  'cliente.editado': 'Contato de cliente editado',
+  'cliente.anonimizado': 'Dados pessoais de cliente removidos',
+  'espera.criada': 'Entrada na lista de espera',
+  'espera.resolvida': 'Lista de espera resolvida',
+};
+
 export default async function operacao(root, { params = new URLSearchParams() } = {}) {
   root._operationController?.abort();
   root._operationController = new AbortController();
@@ -15,13 +28,13 @@ export default async function operacao(root, { params = new URLSearchParams() } 
       <button type="button" class="btn btn--linha" id="exportar">Exportar dados em JSON</button><p class="campo__dica">O arquivo contém dados de clientes. Guarde em local privado. Tokens de acesso e sessões ficam de fora.</p></section>
     <section class="secao"><h2 class="secao__titulo">Lista de espera</h2>
       <ul class="lista" role="list">${data.waitlist.map(w => html`<li class="item"><div class="item__corpo"><strong>${w.name}</strong><p>${w.vehicle} · ${services.find(s => s.id === w.serviceId)?.name || 'Serviço'}</p></div><div class="item__acoes"><a class="btn btn--whats" href="${waLink(w.phone, 'Oi! Surgiu uma vaga na agenda. Podemos combinar sua chegada?')}" target="_blank" rel="noopener">WhatsApp</a><button type="button" class="btn btn--texto" data-resolver="${w.id}">Resolver</button></div></li>`)}</ul>
-      ${!data.waitlist.length ? html`<p>Ninguém aguardando vaga.</p>` : ''}
+      <p id="espera-vazia" ${data.waitlist.length ? html`hidden` : ''}>Ninguém aguardando vaga.</p>
       <form id="form-espera" class="form"><div class="campo"><label for="esp-nome">Nome</label><input id="esp-nome" name="name" required maxlength="80"></div>
         <div class="campo"><label for="esp-phone">WhatsApp</label><input id="esp-phone" name="phone" type="tel" required></div>
         <div class="campo"><label for="esp-carro">Carro</label><input id="esp-carro" name="vehicle" maxlength="60"></div>
         <div class="campo"><label for="esp-servico">Serviço</label><select id="esp-servico" name="serviceId">${services.filter(s => s.active).map(s => html`<option value="${s.id}">${s.name}</option>`)}</select></div>
         <button class="btn btn--primario" type="submit">Adicionar à espera</button></form></section>
-    <section class="secao"><h2 class="secao__titulo">Últimas alterações</h2><ul class="historico" role="list">${data.events.map(e => html`<li><time>${new Date(e.at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</time> · ${e.action} · ${e.targetId}</li>`)}</ul></section>`);
+    <section class="secao"><h2 class="secao__titulo">Últimas alterações</h2><ul class="historico" role="list">${data.events.map(e => html`<li><time>${new Date(e.at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</time> · ${EVENTS[e.action] || e.action}</li>`)}</ul></section>`);
   $('#exportar', root).addEventListener('click', async event => {
     const button = event.currentTarget; button.disabled = true;
     try {
@@ -36,7 +49,12 @@ export default async function operacao(root, { params = new URLSearchParams() } 
     const button = event.target.closest('[data-resolver]');
     if (!button || button.disabled) return;
     button.disabled = true;
-    try { await api.closeWaitlist(button.dataset.resolver); button.closest('li').remove(); toast('Registro resolvido.'); }
+    try {
+      await api.closeWaitlist(button.dataset.resolver);
+      button.closest('li').remove();
+      $('#espera-vazia', root).hidden = Boolean($('[data-resolver]', root));
+      toast('Registro resolvido.');
+    }
     catch (error) { toast(error.message); button.disabled = false; }
   }, { signal: (root._operationController ||= new AbortController()).signal });
   // O host de navegação chama cleanup ao sair desta tela.

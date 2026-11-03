@@ -3,7 +3,7 @@
 import * as api from '../data/api.js';
 import { diffDays, today } from '../core/dates.js';
 import {
-  formatDateLong, formatDateShort, formatDateShortYear, formatPhone, formatRelativeDay, html, raw,
+  formatDateLong, formatDateShort, formatDateShortYear, formatPhone, formatRelativeDay, html, raw, STATUS_LABELS,
 } from '../core/format.js';
 import { icon } from '../core/icons.js';
 import { appointmentMessage, returnMessage, waLink } from '../core/whatsapp.js';
@@ -48,13 +48,13 @@ export function toast(message, { undo, duration = 5200 } = {}) {
 
 const STATUS = {
   agendado: null,
-  confirmado: { cls: 'feito', icon: 'check', label: 'confirmado' },
-  recebido: { cls: 'feito', icon: 'check', label: 'recebido' },
-  em_servico: { cls: 'feito', icon: 'wrench', label: 'em serviço' },
-  pronto: { cls: 'feito', icon: 'check', label: 'pronto para retirada' },
-  concluido: { cls: 'feito', icon: 'check', label: 'concluído' },
-  faltou: { cls: 'faltou', icon: 'x', label: 'não veio' },
-  cancelado: { cls: 'cancelado', icon: 'ban', label: 'cancelado' },
+  confirmado: { cls: 'feito', icon: 'check', label: STATUS_LABELS.confirmado },
+  recebido: { cls: 'feito', icon: 'check', label: STATUS_LABELS.recebido },
+  em_servico: { cls: 'feito', icon: 'wrench', label: STATUS_LABELS.em_servico },
+  pronto: { cls: 'feito', icon: 'check', label: STATUS_LABELS.pronto },
+  concluido: { cls: 'feito', icon: 'check', label: STATUS_LABELS.concluido },
+  faltou: { cls: 'faltou', icon: 'x', label: STATUS_LABELS.faltou },
+  cancelado: { cls: 'cancelado', icon: 'ban', label: STATUS_LABELS.cancelado },
 };
 
 export function statusSelo(appointment) {

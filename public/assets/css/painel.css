@@ -986,7 +986,7 @@ h1, h2, h3 { text-wrap: balance; }
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 36px;
+  min-height: 44px;
   color: var(--acento);
   font: 700 0.875rem/1.2 var(--font-texto);
   cursor: pointer;

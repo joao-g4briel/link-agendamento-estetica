@@ -77,6 +77,27 @@ test('remarcação mantém identidade, revalida limite e registra alteração', 
   assert.equal(result.appointment.id, a.id); assert.equal(result.appointment.start, '15:00'); assert.equal(db.appointments[0].manageToken, a.manageToken);
   assert.ok(db.events.some(e => e.action === 'agendamento.remarcado'));
 });
+test('corrigir dados de atendimento antigo não reabre, não troca preço nem descarta retorno', () => {
+  const db = fixture(); const a = book(db);
+  const stored = db.appointments[0];
+  stored.date = addDays(today(), -30);
+  r.setAppointmentStatus(db, a.id, 'concluido');
+  db.services[0].priceCents = 9900;
+  const result = r.editAppointment(db, a.id, input({ date: stored.date, start: stored.start, notes: 'Corrigido' }));
+  assert.equal(result.appointment.notes, 'Corrigido'); assert.equal(stored.status, 'concluido'); assert.equal(stored.priceCents, 4050);
+  assert.equal(db.returns[0].status, 'pendente');
+  assert.ok(db.events.some(e => e.action === 'agendamento.editado'));
+  assert.throws(() => r.editAppointment(db, a.id, input({ date: addDays(today(), -29), start: stored.start })), e => e.code === 'INVALID');
+});
+test('remarcar para outro dia continua voltando para agendado', () => {
+  const db = fixture(); const a = book(db);
+  r.setAppointmentStatus(db, a.id, 'confirmado');
+  r.editAppointment(db, a.id, input({ date: addDays(today(), 2) }));
+  assert.equal(db.appointments[0].status, 'agendado');
+});
+test('lista de espera aponta o campo inválido', () => {
+  assert.throws(() => r.saveWaitlist(fixture(), { name: 'A', phone: '1', serviceId: 'svc' }), e => Boolean(e.fields.name && e.fields.phone));
+});
 test('valida datas reais, números finitos, pausas, URLs e descrição', () => {
   assert.equal(isISODate('2026-02-30'), false);
   const db = fixture();

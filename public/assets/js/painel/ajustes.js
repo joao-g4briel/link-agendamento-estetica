@@ -249,14 +249,18 @@ export default async function ajustes(root, { params }) {
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
-    const maxCarsPerDay = Math.min(50, Math.max(0, Math.round(Number(data.get('maxCarsPerDay')) || 0)));
+    const maxCarsPerDay = Number(data.get('maxCarsPerDay'));
+    if (!Number.isInteger(maxCarsPerDay) || maxCarsPerDay < 0 || maxCarsPerDay > 50) {
+      showFieldErrors(form, { maxCarsPerDay: 'Use um número inteiro de 0 a 50.' });
+      return;
+    }
+    showFieldErrors(form, {});
     await api.saveSettings({
       maxCarsPerDay,
       slotStep: Number(data.get('slotStep')),
       minNoticeMinutes: Number(data.get('minNoticeMinutes')),
       horizonDays: Number(data.get('horizonDays')),
     });
-    form.querySelector('[name="maxCarsPerDay"]').value = maxCarsPerDay;
     toast('Regras da agenda salvas.');
   });
 
@@ -347,13 +351,20 @@ export default async function ajustes(root, { params }) {
   });
 
   // Sair
-  $('#sair', root).addEventListener('click', async () => {
-    await api.logout();
-    window.location.reload();
+  $('#sair', root).addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      await api.logout();
+      window.location.reload();
+    } catch (error) {
+      button.disabled = false;
+      toast(error.message || 'Não deu para sair. Tente de novo.');
+    }
   });
 
   if (params.get('secao')) {
-    const target = $(`#${params.get('secao')}`, root);
+    const target = $(`#${CSS.escape(params.get('secao'))}`, root);
     if (target) requestAnimationFrame(() => {
       target.scrollIntoView({ block: 'start' });
       target.querySelector('input')?.focus({ preventScroll: true });

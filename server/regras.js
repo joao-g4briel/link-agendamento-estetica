@@ -605,20 +605,25 @@ export function editAppointment(db, id, input, { force = false } = {}) {
   validateBooking(input);
   const service = findService(db, input.serviceId);
   if (!service.active && service.id !== a.serviceId) throw invalid('Escolha um serviço ativo.');
-  if (input.date < today() || input.date > addDays(today(), 365)) throw invalid('Escolha uma data entre hoje e o próximo ano.');
-  if (!force && !daySlots({ ...baseContext(db), date: input.date, ignoreId: id }).slots.some(s => s.time === input.start)) throw new ApiError('SLOT_TAKEN', 'Esse dia ou horário de chegada não está disponível.', 409);
+  // Sem mudar o dia e a chegada, a edição é só de dados: atendimentos antigos também podem ser corrigidos.
+  const sameArrival = input.date === a.date && input.start === a.start;
+  const sameBooking = sameArrival && service.id === a.serviceId;
+  if (!sameArrival) {
+    if (input.date < today() || input.date > addDays(today(), 365)) throw invalid('Escolha uma data entre hoje e o próximo ano.');
+    if (!force && !daySlots({ ...baseContext(db), date: input.date, ignoreId: id }).slots.some(s => s.time === input.start)) throw new ApiError('SLOT_TAKEN', 'Esse dia ou horário de chegada não está disponível.', 409);
+  }
   const customer = upsertCustomer(db, text(input.name, 80), input.phone);
   const vehicle = vehicleFor(db, customer, { ...input, vehicleId: input.vehicleId || a.vehicleId });
   const before = { date: a.date, start: a.start, serviceId: a.serviceId, status: a.status };
   for (const r of db.returns) {
-    if (r.appointmentId === id) r.status = 'descartado';
+    if (r.appointmentId === id && !sameBooking) r.status = 'descartado';
     if (r.bookedAppointmentId === id && (r.serviceId !== service.id || !sameVehicle(r, { vehicleId: vehicle.id }))) { r.status = 'pendente'; r.bookedAppointmentId = null; }
   }
-  Object.assign(a, { date: input.date, start: input.start, serviceId: service.id, priceCents: service.priceCents,
+  Object.assign(a, { date: input.date, start: input.start, serviceId: service.id,
     customerId: customer.id, customerName: text(input.name, 80), vehicleId: vehicle.id,
-    vehicle: text(input.vehicle, 60), plate: formatPlate(input.plate), notes: text(input.notes, 300),
-    status: 'agendado', completedAt: null, autoCompleted: false });
-  record(db, 'agendamento.remarcado', id, { before, date: a.date, start: a.start });
+    vehicle: text(input.vehicle, 60), plate: formatPlate(input.plate), notes: text(input.notes, 300) });
+  if (!sameBooking) Object.assign(a, { priceCents: service.priceCents, status: 'agendado', completedAt: null, autoCompleted: false });
+  record(db, sameBooking ? 'agendamento.editado' : 'agendamento.remarcado', id, { before, date: a.date, start: a.start });
   return clone({ appointment: expandAppointment(db, a) });
 }
 
@@ -673,7 +678,10 @@ export function getOperations(db, from, to) {
 }
 
 export function saveWaitlist(db, input) {
-  if (text(input.name, 80).length < 2 || !isValidPhone(input.phone)) throw invalid('Informe nome e WhatsApp válidos.');
+  const errors = {};
+  if (text(input.name, 80).length < 2) errors.name = 'Informe o nome.';
+  if (!isValidPhone(input.phone)) errors.phone = 'Confira o WhatsApp: DDD e número.';
+  if (Object.keys(errors).length) throw invalid('Informe nome e WhatsApp válidos.', errors);
   findService(db, input.serviceId);
   const entry = { id: uid('esp'), name: text(input.name, 80), phone: normalizePhone(input.phone), serviceId: input.serviceId, vehicle: text(input.vehicle, 60), status: 'pendente', createdAt: today() };
   (db.waitlist ||= []).push(entry);

@@ -98,6 +98,9 @@ export default async function novo(root, { params }) {
   const summary = $('#n-resumo', root);
   let sequence = 0;
   let selectedBeforeLoad = preset.start;
+  // Editando sem trocar o dia, a chegada original continua valendo mesmo sem vaga livre.
+  const keptArrival = () => (editId && form.date.value === preset.date ? preset.start : null);
+  const chosenTime = () => (state.encaixe ? form.startManual.value : state.time || keptArrival());
   $('#n-veiculo', root)?.addEventListener('change', event => {
     const car = cars.find(c => c.id === event.target.value);
     preset.vehicleId = car?.id;
@@ -107,7 +110,7 @@ export default async function novo(root, { params }) {
 
   function updateSummary() {
     const s = active.find((x) => x.id === form.serviceId.value);
-    const time = state.encaixe ? form.startManual.value : state.time;
+    const time = chosenTime();
     summary.textContent = s && time ? `${capitalize(formatDateLong(state.date))}, às ${time} · ${s.name}` : '';
   }
 
@@ -131,11 +134,15 @@ export default async function novo(root, { params }) {
     if (request !== sequence) return;
     if (!day.slots.length) {
       const why = { fechado: 'A estética está fechada nesse dia.', passou: 'Esse dia já passou.', lotado: 'Dia lotado: limite diário atingido.', encerrado: 'Não há mais horários de chegada neste dia.' }[day.reason] || `Folga: ${day.reason}.`;
-      slotsBox.innerHTML = String(html`<p class="campo__dica">${why} Escolha outro dia ou use o encaixe.</p>`);
+      slotsBox.innerHTML = String(keptArrival()
+        ? html`<p class="campo__dica">Chegada mantida às ${keptArrival()}. Para remarcar, escolha outro dia.</p>`
+        : html`<p class="campo__dica">${why} Escolha outro dia ou use o encaixe.</p>`);
+      updateSummary();
       return;
     }
     slotsBox.innerHTML = String(html`<div class="slots">${day.slots.map((s) => html`<button type="button" class="slot" data-hora="${s.time}" aria-pressed="false">${s.time}</button>`)}</div>`);
     if (selectedBeforeLoad) { slotsBox.querySelector(`[data-hora="${selectedBeforeLoad}"]`)?.click(); selectedBeforeLoad = null; }
+    updateSummary();
   }
 
   slotsBox.addEventListener('click', (event) => {
@@ -162,7 +169,7 @@ export default async function novo(root, { params }) {
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const start = state.encaixe ? form.startManual.value : state.time;
+    const start = chosenTime();
     const data = {
       serviceId: form.serviceId.value,
       date: form.date.value,
@@ -187,7 +194,7 @@ export default async function novo(root, { params }) {
     button.setAttribute('aria-busy', 'true');
     try {
       const { appointment } = editId ? await api.editAppointment(editId, data, state.encaixe) : await api.createBooking(data, { source: 'painel', force: state.encaixe });
-      toast(`Agendado: ${formatDateLong(appointment.date)}, às ${appointment.start}.`);
+      toast(`${editId ? 'Alterações salvas' : 'Agendado'}: ${formatDateLong(appointment.date)}, às ${appointment.start}.`);
       window.location.hash = appointment.date === today() ? '#/' : `#/agenda?semana=${appointment.date}`;
     } catch (error) {
       if (error.fields) {

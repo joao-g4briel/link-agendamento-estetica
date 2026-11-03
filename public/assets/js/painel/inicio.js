@@ -2,7 +2,7 @@
 
 import * as api from '../data/api.js';
 import { today, weekday } from '../core/dates.js';
-import { formatDateShort, formatDateShortYear, formatPhone, formatRelativeDay, WEEKDAYS } from '../core/format.js';
+import { formatDateShort, formatDateShortYear, formatPhone, formatRelativeDay, statusLabel, WEEKDAYS } from '../core/format.js';
 import { waLink } from '../core/whatsapp.js';
 import {
   $, appointmentRow, bindAppointmentActions, bindReturnActions, hourLabel, html, icon,
@@ -69,7 +69,7 @@ function customerResult(c) {
           <details class="dobra">
             <summary>Histórico (${c.visits} ${c.visits === 1 ? 'visita' : 'visitas'}) ${icon('chevron-down')}</summary>
             <ul class="historico dobra__conteudo" role="list">
-              ${c.history.map((a) => html`<li>${formatDateShortYear(a.date)} · ${a.service.name} · ${a.vehicle} · ${{ agendado: 'agendado', concluido: 'concluído', faltou: 'não veio', cancelado: 'cancelado' }[a.status]}</li>`)}
+              ${c.history.map((a) => html`<li>${formatDateShortYear(a.date)} · ${a.service.name} · ${a.vehicle} · ${statusLabel(a.status)}</li>`)}
             </ul>
           </details>` : ''}
       </div>
@@ -154,12 +154,12 @@ export default async function inicio(root) {
     const q = input.value.trim();
     query = q;
     $('#busca-limpar', root).hidden = !q;
+    const seq = ++searchSeq;
     if (q.length < 2) {
       results.innerHTML = '';
       home.hidden = false;
       return;
     }
-    const seq = ++searchSeq;
     let found;
     try { found = await api.search(q); }
     catch (error) { if (seq === searchSeq) { results.innerHTML = String(html`<p class="secao" role="alert">${error.message || 'Não deu para buscar. Tente novamente.'}</p>`); } return; }

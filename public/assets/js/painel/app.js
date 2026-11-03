@@ -21,7 +21,7 @@ const TABS = [
 ];
 
 const VIEWS = { '': inicio, agenda, retornos, servicos, ajustes, novo, clientes, operacao };
-const TAB_OF = { novo: 'agenda', clientes: '', operacao: 'ajustes' };
+const TAB_OF = { novo: 'agenda', clientes: '', operacao: '' };
 
 const viewHost = createViewHost($('#conteudo'));
 let badge = 0;
@@ -30,7 +30,7 @@ function parseHash() {
   const raw = window.location.hash.replace(/^#\/?/, '');
   const [path, query] = raw.split('?');
   const [route = '', ...rest] = path.split('/');
-  return { route: VIEWS[route] ? route : '', rest, params: new URLSearchParams(query || '') };
+  return { route: Object.hasOwn(VIEWS, route) ? route : '', rest, params: new URLSearchParams(query || '') };
 }
 
 function renderTabs(route) {
@@ -57,10 +57,7 @@ async function render() {
   const { route, rest, params } = parseHash();
   renderTabs(route);
   const shown = await viewHost.show((root) => VIEWS[route](root, { params, rest }), (error, root) => {
-    if (error.code === 'UNAUTHORIZED') {
-      renderLogin();
-      return;
-    }
+    if (error.code === 'UNAUTHORIZED') return;
     console.error(error);
     root.innerHTML = String(html`
       <div class="secao">
@@ -79,18 +76,24 @@ async function render() {
   updateChrome();
 }
 
+api.onUnauthorized(() => {
+  if (!document.body.classList.contains('sem-sessao')) renderLogin('Sua sessão terminou. Entre de novo para continuar.');
+});
+
 let pending;
 api.subscribe(() => {
   clearTimeout(pending);
   pending = setTimeout(() => {
-    viewHost.refresh().catch((error) => { if (error.code === 'UNAUTHORIZED') renderLogin(); else toast(error.message || 'Não deu para atualizar esta tela.'); });
+    viewHost.refresh().catch((error) => { if (error.code !== 'UNAUTHORIZED') toast(error.message || 'Não deu para atualizar esta tela.'); });
     updateChrome();
   }, 80);
 });
 
 window.addEventListener('hashchange', render);
 const refreshActive = () => {
-  if (document.visibilityState === 'visible' && !document.body.classList.contains('sem-sessao')) viewHost.refresh().catch(error => { if (error.code === 'UNAUTHORIZED') renderLogin(); else toast(error.message || 'Não deu para atualizar.'); });
+  // Com um menu aberto, atualizar a lista o fecharia na mão de quem está usando.
+  if (document.querySelector('details.menu[open]')) return;
+  if (document.visibilityState === 'visible' && !document.body.classList.contains('sem-sessao')) viewHost.refresh().catch(error => { if (error.code !== 'UNAUTHORIZED') toast(error.message || 'Não deu para atualizar.'); });
 };
 document.addEventListener('visibilitychange', refreshActive);
 setInterval(refreshActive, 45000);
